@@ -1,0 +1,14 @@
+{
+  "name": "@rubik-os/design-system",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "engines": {
+    "node": ">=24.0.0"
+  },
+  "scripts": {
+    "build": "node -e \"console.log('design-system: no build step yet')\"",
+    "test": "node -e \"console.log('design-system: no tests yet')\"",
+    "typecheck": "node -e \"console.log('design-system: no typecheck step yet')\""
+  }
+}

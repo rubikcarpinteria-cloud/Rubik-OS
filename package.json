@@ -1,0 +1,28 @@
+{
+  "name": "rubik-os",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Sistema operativo interno de Rubik Carpinteria.",
+  "packageManager": "pnpm@11.7.0",
+  "engines": {
+    "node": ">=24.0.0",
+    "pnpm": ">=11.0.0"
+  },
+  "scripts": {
+    "build": "pnpm -r build",
+    "dev": "pnpm --parallel --filter @rubik-os/backend --filter @rubik-os/frontend dev",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
+    "lint": "eslint .",
+    "test": "pnpm -r test",
+    "typecheck": "pnpm -r typecheck",
+    "validate": "pnpm format:check && pnpm lint && pnpm typecheck && pnpm test && pnpm build"
+  },
+  "devDependencies": {
+    "@eslint/js": "10.0.1",
+    "eslint": "10.6.0",
+    "prettier": "3.9.0",
+    "typescript": "6.0.3",
+    "typescript-eslint": "8.62.0"
+  }
+}

@@ -1,0 +1,45 @@
+# Dependencies
+node_modules/
+vendor/
+
+# Build output
+dist/
+build/
+coverage/
+.next/
+.turbo/
+
+# Environment and secrets
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+
+# Logs and runtime files
+*.log
+logs/
+tmp/
+temp/
+*.pid
+
+# Test and tool caches
+.cache/
+.pytest_cache/
+__pycache__/
+*.py[cod]
+*.tsbuildinfo
+
+# Local tooling
+.pnpm-store/
+
+# IDE and OS
+.idea/
+.vscode/
+.DS_Store
+Thumbs.db
+Desktop.ini
+
+# Supabase local state
+.supabase/
+supabase/.temp/

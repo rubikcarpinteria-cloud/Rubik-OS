@@ -1,0 +1,25 @@
+name: Propuesta de funcionalidad
+description: Registrar una necesidad para su análisis y validación.
+title: '[Propuesta]: '
+labels: ['proposal']
+body:
+  - type: textarea
+    id: need
+    attributes:
+      label: Necesidad
+      description: Describir el problema o necesidad, sin prescribir una solución.
+    validations:
+      required: true
+  - type: textarea
+    id: context
+    attributes:
+      label: Contexto operativo
+      description: Indicar dónde y cuándo ocurre.
+    validations:
+      required: true
+  - type: textarea
+    id: acceptance
+    attributes:
+      label: Resultado esperado
+    validations:
+      required: true
