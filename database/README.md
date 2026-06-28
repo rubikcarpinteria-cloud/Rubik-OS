@@ -1,12 +1,29 @@
 # Database
 
-Esquema y evolución versionada de PostgreSQL/Supabase:
+Versioned PostgreSQL/Supabase schema for Rubik OS.
 
-- `migrations/`: historial ordenado de cambios de base de datos.
-- `functions/`: funciones versionadas.
-- `policies/`: políticas de seguridad y Row Level Security.
-- `views/`: vistas versionadas.
-- `seeds/`: datos no sensibles para desarrollo y pruebas.
-- `tests/`: pruebas de esquema, funciones, restricciones y políticas.
+## Folders
 
-Todo cambio de Supabase deberá quedar representado y versionado en este directorio.
+- `migrations/`: ordered database changes. Sprint 2 starts the core data model.
+- `functions/`: versioned database functions when they are split from migrations.
+- `policies/`: Row Level Security policies when user access rules are defined.
+- `views/`: versioned database views.
+- `seeds/`: non-sensitive demo data for development and smoke checks.
+- `tests/`: SQL smoke tests for schema, relations, functions and policies.
+
+## Sprint 2 Core
+
+The first data core creates:
+
+- `personas`
+- `ordenes_trabajo`
+- `tareas`
+- `historial_eventos`
+- `archivos`
+
+Migrations are designed to be safe for an environment where `public.personas`
+may already exist. They do not drop tables and do not delete data.
+
+RLS is enabled from the start, but user policies are intentionally deferred.
+Initial access should go through the backend with Supabase `service_role`
+credentials.
