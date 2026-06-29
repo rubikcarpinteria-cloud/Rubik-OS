@@ -49,3 +49,11 @@
 - PowerShell normal no reconocía `pnpm` ni `corepack`.
 - Codex levantó el servidor dev usando el runtime de Codex y el `pnpm.cmd` ya usado para `pnpm validate`.
 - La ruta `http://localhost:3000/demo/design-engine` respondió `STATUS=200`.
+
+## Decisión estratégica — Rubik OS como motor propio de diseño
+
+- La usuaria definió que Rubik OS debe tomar como referencia funcional a PolyBoard, pero no depender de PolyBoard como núcleo.
+- Rubik OS debe diseñar a partir de medidas tomadas por Diego o Joel.
+- El sistema debe generar diseño 3D, despiece, piezas, cantos, lista de corte y cotización preliminar.
+- PolyBoard, SketchUp o FreeCAD quedan como herramientas externas opcionales.
+- La validación final continúa siendo responsabilidad de Diego.

@@ -1,4 +1,5 @@
 export { generateKitchenBaseCabinetCutlist } from './kitchenBaseCabinet.js';
+export { createBasic3DModelFromDesignPieces } from './model3d.js';
 export {
   createPreliminaryQuoteFromKitchenBaseDesign,
   PRELIMINARY_QUOTE_VALIDATION_NOTE,
@@ -20,3 +21,8 @@ export type {
   PreliminaryCutlistPiece,
 } from './types.js';
 export type { ConvertDesignPiecesToCutlistItemsInput, CutlistItemDraft } from './toCutlist.js';
+export type {
+  CreateBasic3DModelFromDesignPiecesInput,
+  Design3DBox,
+  Design3DModel,
+} from './model3d.js';
