@@ -43,3 +43,4 @@ Desktop.ini
 # Supabase local state
 .supabase/
 supabase/.temp/
+node_modules.broken-*/
