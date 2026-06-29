@@ -74,3 +74,11 @@
 - Páginas 4 y 9 no son fuente activa para modulación.
 - El catálogo incluye anchos de módulos, referencias de alturas, profundidades y regla bajo mesada + 63 cm.
 - Todo queda como referencia preliminar y requiere validación de Diego.
+
+## Catálogo de módulos bajos prediseñados
+
+- Se define que Rubik OS tendrá módulos bajos prediseñados con accesorios, puertas, cajones y estantes.
+- La composición modular debe respetar el ancho disponible.
+- Si los módulos no encajan, Rubik OS debe advertir.
+- Los módulos pueden ajustarse por obra, pero requieren validación de Diego.
+- Esta funcionalidad aproxima el flujo deseado tipo PolyBoard sin depender de PolyBoard.

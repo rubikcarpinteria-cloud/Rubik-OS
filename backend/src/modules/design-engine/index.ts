@@ -1,6 +1,20 @@
 export { generateKitchenBaseCabinetCutlist } from './kitchenBaseCabinet.js';
 export { createBasic3DModelFromDesignPieces } from './model3d.js';
 export {
+  baseModuleCatalog,
+  BASE_MODULE_STANDARD_DEPTH_MM,
+  BASE_MODULE_STANDARD_HEIGHT_MM,
+  getBaseModuleByCode,
+  getBaseModulesByType,
+  getBaseModulesByWidth,
+  getPredefinedBaseModules,
+  isBaseFillerModule,
+} from './baseModuleCatalog.js';
+export {
+  composeBaseModulesForAvailableWidth,
+  createKitchenBaseDesignInputFromBaseComposition,
+} from './baseModuleComposer.js';
+export {
   createSiteMeasurement,
   validateKitchenUnderCounterMeasurement,
 } from './siteMeasurements.js';
@@ -57,3 +71,12 @@ export type {
   WallCabinetModuleKind,
   WallCabinetWidthClassification,
 } from './wallCabinetCatalog.js';
+export type { BaseModuleType, PredefinedBaseModule } from './baseModuleCatalog.js';
+export type {
+  BaseModuleCompositionInput,
+  BaseModuleCompositionResult,
+  ComposedBaseModule,
+  CreateKitchenBaseDesignInputFromBaseCompositionInput,
+  KitchenBaseDesignInputFromBaseCompositionResult,
+  SelectedBaseModule,
+} from './baseModuleComposer.js';
