@@ -1,4 +1,5 @@
 ﻿import type {
+  Demo3DViewerModel,
   DemoCutlistItem,
   DemoModuleComposition,
   DemoPiece,
@@ -15,6 +16,8 @@ export const WHATSAPP_3070_VALIDATION_WARNING =
 
 const DIEGO_VALIDATION_NOTE =
   'Demo interna beta. Despiece preliminar generado por Rubik OS: requiere validación de Diego antes de enviar a corte.';
+const VIEWER_VALIDATION_NOTE =
+  'Vista 3D técnica preliminar — no apta para fabricación sin validación de Diego.';
 const DOOR_EDGE_MM = 2;
 const TOP_RAIL_WIDTH_MM = 100;
 const SHELF_DEPTH_REDUCTION_MM = 50;
@@ -135,6 +138,7 @@ export function calculateDesignEngineDemo(form: DesignEngineDemoForm): DesignEng
   }
 
   const warnings = moduleComposition.warnings;
+  const viewer3d = createViewer3dModel(normalizedForm, moduleComposition);
   const pieces = createPieces(normalizedForm);
   const cutlistItems = pieces.map((piece): DemoCutlistItem => {
     return {
@@ -192,6 +196,7 @@ export function calculateDesignEngineDemo(form: DesignEngineDemoForm): DesignEng
     edgeBandCostArs,
     totals,
     moduleComposition,
+    viewer3d,
     notes: [DIEGO_VALIDATION_NOTE, DEMO_PRELIMINARY_NOTE],
   };
 }
@@ -241,6 +246,38 @@ function createModuleComposition(form: DesignEngineDemoForm): DemoModuleComposit
           ? 'falta_relleno'
           : 'supera_ancho_disponible',
     warnings,
+  };
+}
+
+function createViewer3dModel(
+  form: DesignEngineDemoForm,
+  moduleComposition: DemoModuleComposition,
+): Demo3DViewerModel {
+  let cursorMm = 0;
+  const modules = form.selectedBaseModules.map((module) => {
+    const startMm = cursorMm;
+    const endMm = roundMeasure(startMm + module.widthMm);
+    cursorMm = endMm;
+
+    return {
+      ...module,
+      startMm,
+      endMm,
+      label: formatModuleLabel(module),
+    };
+  });
+
+  return {
+    widthMm: form.widthMm,
+    heightMm: form.heightMm,
+    depthMm: form.depthMm,
+    hasBackPanel: form.hasBackPanel,
+    hasToeKick: form.hasToeKick,
+    toeKickHeightMm: form.hasToeKick ? form.toeKickHeightMm : 0,
+    modules,
+    moduleComposition,
+    warnings: moduleComposition.warnings,
+    validationNote: VIEWER_VALIDATION_NOTE,
   };
 }
 
@@ -527,6 +564,7 @@ function createEmptyResult(
     edgeBandCostArs: 0,
     totals,
     moduleComposition,
+    viewer3d: null,
     notes: [DEMO_PRELIMINARY_NOTE],
   };
 }
@@ -569,6 +607,30 @@ function calculateTotals(input: {
 
 function cloneModules(modules: DemoSelectedBaseModule[]): DemoSelectedBaseModule[] {
   return modules.map((module) => ({ ...module }));
+}
+
+function formatModuleLabel(module: DemoSelectedBaseModule): string {
+  if (module.type === 'doors') {
+    return `${module.doors} puerta${module.doors === 1 ? '' : 's'}`;
+  }
+
+  if (module.type === 'drawers') {
+    return `${module.drawers} cajón${module.drawers === 1 ? '' : 'es'}`;
+  }
+
+  if (module.type === 'filler') {
+    return 'ajuste';
+  }
+
+  if (module.type === 'open_shelves') {
+    return `${module.shelves} estante${module.shelves === 1 ? '' : 's'}`;
+  }
+
+  if (module.type === 'sink') {
+    return 'piletero';
+  }
+
+  return 'horno';
 }
 
 function mm2ToM2(value: number): number {

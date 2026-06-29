@@ -5,6 +5,8 @@ import { App } from '../src/App';
 
 const WHATSAPP_3070_WARNING =
   'Composición preliminar tomada de medición/foto WhatsApp. Validar en obra antes de corte.';
+const SIMPLE_3D_VALIDATION_WARNING =
+  'Vista 3D técnica preliminar — no apta para fabricación sin validación de Diego.';
 
 describe('Design engine internal demo', () => {
   afterEach(() => {
@@ -47,7 +49,7 @@ describe('Design engine internal demo', () => {
       screen.getByText('OK: la suma de módulos coincide con el ancho total.'),
     ).toBeInTheDocument();
     expect(screen.getByText('Ancho total')).toBeInTheDocument();
-    expect(screen.getByText('Suma módulos')).toBeInTheDocument();
+    expect(screen.getAllByText('Suma módulos').length).toBeGreaterThanOrEqual(1);
     expect(screen.getAllByText('Diferencia').length).toBeGreaterThanOrEqual(1);
   });
 
@@ -69,6 +71,18 @@ describe('Design engine internal demo', () => {
     ).toBeInTheDocument();
   });
 
+  it('shows the simple technical 3d viewer', () => {
+    window.history.pushState(null, '', '/demo/design-engine');
+
+    render(<App />);
+
+    expect(
+      screen.getByRole('heading', { name: 'Vista 3D técnica preliminar' }),
+    ).toBeInTheDocument();
+    expect(screen.getByText(SIMPLE_3D_VALIDATION_WARNING)).toBeInTheDocument();
+    expect(screen.getByRole('img', { name: 'Vista técnica del bajo mesada' })).toBeInTheDocument();
+  });
+
   it('loads the WhatsApp 3070 mm kitchen preset', () => {
     window.history.pushState(null, '', '/demo/design-engine');
 
@@ -85,6 +99,20 @@ describe('Design engine internal demo', () => {
     expect(screen.getAllByText('Puertas doble 1000 mm').length).toBeGreaterThanOrEqual(1);
     expect(screen.getAllByText('Relleno/ajuste 710 mm').length).toBeGreaterThanOrEqual(1);
     expect(screen.getByText('Estado: encaja')).toBeInTheDocument();
+    expect(screen.getAllByText(WHATSAPP_3070_WARNING).length).toBeGreaterThanOrEqual(1);
+  });
+
+  it('updates the simple 3d viewer with the WhatsApp 3070 mm preset', () => {
+    window.history.pushState(null, '', '/demo/design-engine');
+
+    render(<App />);
+
+    fireEvent.click(screen.getByRole('button', { name: 'Cargar cocina WhatsApp 3070 mm' }));
+
+    expect(screen.getByRole('img', { name: 'Vista técnica del bajo mesada' })).toBeInTheDocument();
+    expect(screen.getAllByText('3.070 mm').length).toBeGreaterThanOrEqual(2);
+    expect(screen.getAllByText('750 mm').length).toBeGreaterThanOrEqual(1);
+    expect(screen.getAllByText('650 mm').length).toBeGreaterThanOrEqual(1);
     expect(screen.getAllByText(WHATSAPP_3070_WARNING).length).toBeGreaterThanOrEqual(1);
   });
 
@@ -117,10 +145,12 @@ describe('Design engine internal demo', () => {
 
     expect(screen.queryByLabelText('Alto zócalo (mm)')).not.toBeInTheDocument();
     expect(screen.getByText('Sin zócalo: altura tomada como 0 mm.')).toBeInTheDocument();
+    expect(screen.getAllByText('Sin zócalo').length).toBeGreaterThanOrEqual(1);
     expect(
       screen.queryByText('Si incluís zócalo, indicá la altura del zócalo.'),
     ).not.toBeInTheDocument();
     expect(screen.queryByText('Frente de zócalo')).not.toBeInTheDocument();
+    expect(screen.queryByText('Zócalo 100 mm')).not.toBeInTheDocument();
   });
 
   it('asks for toe kick height only when toe kick is included', () => {

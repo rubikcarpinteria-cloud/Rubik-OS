@@ -22,6 +22,25 @@ export type DemoModuleComposition = {
   warnings: string[];
 };
 
+export type Demo3DModule = DemoSelectedBaseModule & {
+  startMm: number;
+  endMm: number;
+  label: string;
+};
+
+export type Demo3DViewerModel = {
+  widthMm: number;
+  heightMm: number;
+  depthMm: number;
+  hasBackPanel: boolean;
+  hasToeKick: boolean;
+  toeKickHeightMm: number;
+  modules: Demo3DModule[];
+  moduleComposition: DemoModuleComposition;
+  warnings: string[];
+  validationNote: string;
+};
+
 export type DesignEngineDemoForm = {
   widthMm: number;
   heightMm: number;
@@ -96,5 +115,6 @@ export type DesignEngineDemoResult = {
   edgeBandCostArs: number;
   totals: DemoTotals;
   moduleComposition: DemoModuleComposition;
+  viewer3d: Demo3DViewerModel | null;
   notes: string[];
 };

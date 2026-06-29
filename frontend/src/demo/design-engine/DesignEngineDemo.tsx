@@ -6,6 +6,7 @@ import {
   DEFAULT_DESIGN_ENGINE_DEMO_FORM,
   DEMO_PRELIMINARY_NOTE,
 } from './demoCalculator';
+import { Simple3DViewer } from './Simple3DViewer';
 import type {
   DemoModuleComposition,
   DemoModuleCompositionStatus,
@@ -292,6 +293,8 @@ export function DesignEngineDemo() {
           />
         </div>
       </section>
+
+      <Simple3DViewer model={result.viewer3d} />
 
       {result.errors.length > 0 ? (
         <Notice title="Revisar datos" items={result.errors} tone="error" />

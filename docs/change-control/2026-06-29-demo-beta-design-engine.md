@@ -90,3 +90,12 @@
 - La demo muestra módulos seleccionados, suma, diferencia y advertencias.
 - La composición sigue siendo preliminar y requiere validación de Diego.
 - No guarda en base de datos ni envía a maderera.
+
+## Demo visual — visor 3D técnico simple
+
+- Se agregó una vista 3D técnica preliminar basada en cajas/módulos.
+- No es render fotorealista.
+- No reemplaza diseño validado por Diego.
+- No usa librerías externas.
+- Permite visualizar la composición modular antes del despiece y cotización.
+- Se integra con el preset cocina WhatsApp 3070 mm.
