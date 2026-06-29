@@ -1,6 +1,10 @@
 export { generateKitchenBaseCabinetCutlist } from './kitchenBaseCabinet.js';
 export { createBasic3DModelFromDesignPieces } from './model3d.js';
 export {
+  createSiteMeasurement,
+  validateKitchenUnderCounterMeasurement,
+} from './siteMeasurements.js';
+export {
   createPreliminaryQuoteFromKitchenBaseDesign,
   PRELIMINARY_QUOTE_VALIDATION_NOTE,
 } from './quoteFromDesign.js';
@@ -26,3 +30,12 @@ export type {
   Design3DBox,
   Design3DModel,
 } from './model3d.js';
+export type {
+  CreateSiteMeasurementInput,
+  KitchenUnderCounterMeasurement,
+  KitchenUnderCounterMeasurementValidation,
+  MeasuredBy,
+  MeasurementSource,
+  SiteMeasurement,
+  SiteMeasurementStatus,
+} from './siteMeasurements.js';

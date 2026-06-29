@@ -57,3 +57,12 @@
 - El sistema debe generar diseño 3D, despiece, piezas, cantos, lista de corte y cotización preliminar.
 - PolyBoard, SketchUp o FreeCAD quedan como herramientas externas opcionales.
 - La validación final continúa siendo responsabilidad de Diego.
+
+## Flujo troncal — WhatsApp a producción
+
+- Se definió WhatsApp como canal de entrada de fotos, medidas y notas de Diego/Joel.
+- Se aclaró que WhatsApp no es fuente final de fabricación.
+- Se definió trazabilidad de medición.
+- Se separó salida a cliente de salida a maderera.
+- Se mantiene validación obligatoria de Diego.
+- Se agregó base para intake de mediciones de obra.
