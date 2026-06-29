@@ -1,0 +1,49 @@
+{
+  "source": "Instalación de Alacenas V02_15.pdf",
+  "active_pages": [2, 5],
+  "inactive_pages_for_modulation": [4, 9],
+  "catalog_status": "initial_reference",
+  "requires_diego_validation": true,
+  "wall_cabinet_modules": {
+    "single_door_widths_cm": [30, 40, 45, 50, 60],
+    "double_door_widths_cm": [60, 80, 90, 100, 120],
+    "ambiguous_widths_cm": [60],
+    "notes": [
+      "La modulación surge como referencia del esquema de puertas de alacenas.",
+      "El módulo de 60 cm puede interpretarse como simple o doble según configuración.",
+      "Todo módulo requiere validación antes de fabricar."
+    ]
+  },
+  "dimension_references": {
+    "height_lines_cm": [12, 15, 84, 87, 147, 150, 179, 182, 211, 214, 243, 246],
+    "depth_references_cm": [32, 33.5, 59],
+    "notes": [
+      "Las referencias contemplan rangos de regulación de zócalos y banquinas.",
+      "Las medidas deben validarse contra obra real."
+    ]
+  },
+  "installation_rules": [
+    {
+      "code": "WALL_CABINET_FLOOR_LINE",
+      "description": "Para alacenas, en general se toma la altura total del bajo mesada + 63 cm para indicar la posición del piso de alacena.",
+      "formula": "piso_alacena_cm = altura_bajo_mesada_cm + 63",
+      "requires_human_validation": true
+    },
+    {
+      "code": "START_WITH_CORNER_WALL_CABINET",
+      "description": "Si existe alacena rinconera, comenzar instalación por la alacena rinconera.",
+      "requires_human_validation": true
+    },
+    {
+      "code": "CUTOUTS_FOR_INSTALLATIONS",
+      "description": "Realizar calados para instalaciones en caso de ser necesario.",
+      "requires_human_validation": true
+    }
+  ],
+  "rubik_os_usage": [
+    "Usar como catálogo inicial para módulos de alacenas.",
+    "Usar como referencia para validar medidas estándar.",
+    "Marcar módulos no estándar como especiales.",
+    "No enviar a corte sin validación de Diego."
+  ]
+}

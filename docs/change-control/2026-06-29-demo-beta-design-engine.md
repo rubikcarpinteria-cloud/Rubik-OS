@@ -66,3 +66,11 @@
 - Se separó salida a cliente de salida a maderera.
 - Se mantiene validación obligatoria de Diego.
 - Se agregó base para intake de mediciones de obra.
+
+## Catálogo base desde manual — páginas 2 y 5
+
+- Se decidió generar primero el catálogo técnico antes del motor de composición.
+- La fuente activa del catálogo son páginas 2 y 5 del manual.
+- Páginas 4 y 9 no son fuente activa para modulación.
+- El catálogo incluye anchos de módulos, referencias de alturas, profundidades y regla bajo mesada + 63 cm.
+- Todo queda como referencia preliminar y requiere validación de Diego.
