@@ -1,4 +1,26 @@
-export type DemoCurrency = 'ARS' | 'USD';
+﻿export type DemoCurrency = 'ARS' | 'USD';
+
+export type DemoBaseModuleType = 'doors' | 'drawers' | 'open_shelves' | 'sink' | 'filler' | 'oven';
+
+export type DemoSelectedBaseModule = {
+  code: string;
+  name: string;
+  type: DemoBaseModuleType;
+  widthMm: number;
+  doors: number;
+  drawers: number;
+  shelves: number;
+};
+
+export type DemoModuleCompositionStatus = 'encaja' | 'falta_relleno' | 'supera_ancho_disponible';
+
+export type DemoModuleComposition = {
+  availableWidthMm: number;
+  selectedWidthMm: number;
+  differenceMm: number;
+  status: DemoModuleCompositionStatus;
+  warnings: string[];
+};
 
 export type DesignEngineDemoForm = {
   widthMm: number;
@@ -14,6 +36,8 @@ export type DesignEngineDemoForm = {
   shelfCount: number;
   drawerModuleWidthMm: number;
   drawerCount: number;
+  selectedBaseModules: DemoSelectedBaseModule[];
+  measurementWarning: string | null;
   boardPriceArs: number;
   boardWidthMm: number;
   boardLengthMm: number;
@@ -71,5 +95,6 @@ export type DesignEngineDemoResult = {
   materialCostArs: number;
   edgeBandCostArs: number;
   totals: DemoTotals;
+  moduleComposition: DemoModuleComposition;
   notes: string[];
 };

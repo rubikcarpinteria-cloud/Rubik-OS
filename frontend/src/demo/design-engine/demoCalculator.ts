@@ -1,6 +1,8 @@
-import type {
+﻿import type {
   DemoCutlistItem,
+  DemoModuleComposition,
   DemoPiece,
+  DemoSelectedBaseModule,
   DemoTotals,
   DesignEngineDemoForm,
   DesignEngineDemoResult,
@@ -8,12 +10,74 @@ import type {
 
 export const DEMO_PRELIMINARY_NOTE =
   'Cotización preliminar sujeta a validación de Diego y actualización de precios de materiales.';
+export const WHATSAPP_3070_VALIDATION_WARNING =
+  'Composición preliminar tomada de medición/foto WhatsApp. Validar en obra antes de corte.';
 
 const DIEGO_VALIDATION_NOTE =
   'Demo interna beta. Despiece preliminar generado por Rubik OS: requiere validación de Diego antes de enviar a corte.';
 const DOOR_EDGE_MM = 2;
 const TOP_RAIL_WIDTH_MM = 100;
 const SHELF_DEPTH_REDUCTION_MM = 50;
+
+const DEFAULT_DEMO_BASE_MODULES: DemoSelectedBaseModule[] = [
+  {
+    code: 'BASE_DOORS_900_DOUBLE',
+    name: 'Módulo bajo puertas doble 900',
+    type: 'doors',
+    widthMm: 900,
+    doors: 2,
+    drawers: 0,
+    shelves: 1,
+  },
+  {
+    code: 'BASE_DRAWERS_900_3_DEMO',
+    name: 'Cajonera baja 900 con 3 cajones',
+    type: 'drawers',
+    widthMm: 900,
+    doors: 0,
+    drawers: 3,
+    shelves: 0,
+  },
+];
+
+export const WHATSAPP_3070_DEMO_MODULES: DemoSelectedBaseModule[] = [
+  {
+    code: 'BASE_DOORS_800_DOUBLE',
+    name: 'Puertas doble 800 mm',
+    type: 'doors',
+    widthMm: 800,
+    doors: 2,
+    drawers: 0,
+    shelves: 1,
+  },
+  {
+    code: 'BASE_DRAWERS_560_3_DEMO',
+    name: 'Cajonera 560 mm',
+    type: 'drawers',
+    widthMm: 560,
+    doors: 0,
+    drawers: 3,
+    shelves: 0,
+  },
+  {
+    code: 'BASE_DOORS_1000_DOUBLE_DEMO',
+    name: 'Puertas doble 1000 mm',
+    type: 'doors',
+    widthMm: 1000,
+    doors: 2,
+    drawers: 0,
+    shelves: 1,
+  },
+  {
+    code: 'BASE_FILLER_710_DEMO',
+    name: 'Relleno/ajuste 710 mm',
+    type: 'filler',
+    widthMm: 710,
+    doors: 0,
+    drawers: 0,
+    shelves: 0,
+  },
+];
 
 export const DEFAULT_DESIGN_ENGINE_DEMO_FORM: DesignEngineDemoForm = {
   widthMm: 1800,
@@ -29,6 +93,8 @@ export const DEFAULT_DESIGN_ENGINE_DEMO_FORM: DesignEngineDemoForm = {
   shelfCount: 1,
   drawerModuleWidthMm: 900,
   drawerCount: 3,
+  selectedBaseModules: cloneModules(DEFAULT_DEMO_BASE_MODULES),
+  measurementWarning: null,
   boardPriceArs: 110_000,
   boardWidthMm: 1830,
   boardLengthMm: 2750,
@@ -43,15 +109,32 @@ export const DEFAULT_DESIGN_ENGINE_DEMO_FORM: DesignEngineDemoForm = {
   exchangeRateSell: 1350,
 };
 
+export function createWhatsApp3070DemoForm(current: DesignEngineDemoForm): DesignEngineDemoForm {
+  return {
+    ...current,
+    widthMm: 3070,
+    heightMm: 750,
+    depthMm: 650,
+    doorModuleWidthMm: 800,
+    doorCount: 2,
+    shelfCount: 1,
+    drawerModuleWidthMm: 560,
+    drawerCount: 3,
+    selectedBaseModules: cloneModules(WHATSAPP_3070_DEMO_MODULES),
+    measurementWarning: WHATSAPP_3070_VALIDATION_WARNING,
+  };
+}
+
 export function calculateDesignEngineDemo(form: DesignEngineDemoForm): DesignEngineDemoResult {
   const normalizedForm = normalizeToeKick(form);
+  const moduleComposition = createModuleComposition(normalizedForm);
   const errors = validateForm(normalizedForm);
 
   if (errors.length > 0) {
-    return createEmptyResult(errors);
+    return createEmptyResult(errors, moduleComposition);
   }
 
-  const warnings = createWarnings(normalizedForm);
+  const warnings = moduleComposition.warnings;
   const pieces = createPieces(normalizedForm);
   const cutlistItems = pieces.map((piece): DemoCutlistItem => {
     return {
@@ -108,6 +191,7 @@ export function calculateDesignEngineDemo(form: DesignEngineDemoForm): DesignEng
     materialCostArs,
     edgeBandCostArs,
     totals,
+    moduleComposition,
     notes: [DIEGO_VALIDATION_NOTE, DEMO_PRELIMINARY_NOTE],
   };
 }
@@ -120,6 +204,43 @@ function normalizeToeKick(form: DesignEngineDemoForm): DesignEngineDemoForm {
   return {
     ...form,
     toeKickHeightMm: 0,
+  };
+}
+
+function createModuleComposition(form: DesignEngineDemoForm): DemoModuleComposition {
+  const selectedWidthMm = roundMeasure(
+    form.selectedBaseModules.reduce((total, module) => total + module.widthMm, 0),
+  );
+  const differenceMm = roundMeasure(selectedWidthMm - form.widthMm);
+  const warnings: string[] = [];
+
+  if (form.measurementWarning) {
+    warnings.push(form.measurementWarning);
+  }
+
+  if (differenceMm > 0) {
+    warnings.push(
+      `La composición modular supera el ancho disponible por ${formatMeasure(differenceMm)} mm.`,
+    );
+  }
+
+  if (differenceMm < 0) {
+    warnings.push(
+      `Falta relleno o ajuste por ${formatMeasure(Math.abs(differenceMm))} mm para cubrir el ancho disponible.`,
+    );
+  }
+
+  return {
+    availableWidthMm: form.widthMm,
+    selectedWidthMm,
+    differenceMm,
+    status:
+      differenceMm === 0
+        ? 'encaja'
+        : differenceMm < 0
+          ? 'falta_relleno'
+          : 'supera_ancho_disponible',
+    warnings,
   };
 }
 
@@ -152,45 +273,26 @@ function createPieces(form: DesignEngineDemoForm): DemoPiece[] {
       form.materialThicknessMm,
       'horizontal',
     ),
-    createPiece(
-      'General',
-      'División interna',
-      1,
-      form.heightMm,
-      form.depthMm,
-      form.materialThicknessMm,
-      'vertical',
-    ),
-    createPiece(
-      'puertas izquierdas',
-      'Estantes',
-      form.shelfCount,
-      form.doorModuleWidthMm - 2 * form.materialThicknessMm,
-      form.depthMm - SHELF_DEPTH_REDUCTION_MM,
-      form.materialThicknessMm,
-      'horizontal',
-    ),
-    createPiece(
-      'puertas izquierdas',
-      'Puertas',
-      form.doorCount,
-      form.heightMm - 4,
-      form.doorModuleWidthMm / form.doorCount - 3,
-      form.materialThicknessMm,
-      'vertical',
-      DOOR_EDGE_MM,
-    ),
-    createPiece(
-      'cajonera derecha',
-      'Frentes de cajón',
-      form.drawerCount,
-      (form.heightMm - 6) / form.drawerCount,
-      form.drawerModuleWidthMm - 4,
-      form.materialThicknessMm,
-      'horizontal',
-      DOOR_EDGE_MM,
-    ),
   ];
+  const internalDivisions = Math.max(form.selectedBaseModules.length - 1, 0);
+
+  if (internalDivisions > 0) {
+    pieces.push(
+      createPiece(
+        'General',
+        'Divisiones internas',
+        internalDivisions,
+        form.heightMm,
+        form.depthMm,
+        form.materialThicknessMm,
+        'vertical',
+      ),
+    );
+  }
+
+  for (const module of form.selectedBaseModules) {
+    pieces.push(...createModulePieces(form, module));
+  }
 
   if (form.hasBackPanel) {
     pieces.push(
@@ -216,6 +318,88 @@ function createPieces(form: DesignEngineDemoForm): DemoPiece[] {
         form.toeKickHeightMm,
         form.materialThicknessMm,
         'horizontal',
+      ),
+    );
+  }
+
+  return pieces.filter((piece) => piece.quantity > 0);
+}
+
+function createModulePieces(
+  form: DesignEngineDemoForm,
+  module: DemoSelectedBaseModule,
+): DemoPiece[] {
+  const pieces: DemoPiece[] = [];
+
+  if ((module.type === 'doors' || module.type === 'sink') && module.shelves > 0) {
+    pieces.push(
+      createPiece(
+        module.name,
+        'Estantes',
+        module.shelves,
+        module.widthMm - 2 * form.materialThicknessMm,
+        form.depthMm - SHELF_DEPTH_REDUCTION_MM,
+        form.materialThicknessMm,
+        'horizontal',
+      ),
+    );
+  }
+
+  if ((module.type === 'doors' || module.type === 'sink') && module.doors > 0) {
+    pieces.push(
+      createPiece(
+        module.name,
+        'Puertas',
+        module.doors,
+        form.heightMm - 4,
+        module.widthMm / module.doors - 3,
+        form.materialThicknessMm,
+        'vertical',
+        DOOR_EDGE_MM,
+      ),
+    );
+  }
+
+  if (module.type === 'drawers' && module.drawers > 0) {
+    pieces.push(
+      createPiece(
+        module.name,
+        'Frentes de cajón',
+        module.drawers,
+        (form.heightMm - 6) / module.drawers,
+        module.widthMm - 4,
+        form.materialThicknessMm,
+        'horizontal',
+        DOOR_EDGE_MM,
+      ),
+    );
+  }
+
+  if (module.type === 'open_shelves' && module.shelves > 0) {
+    pieces.push(
+      createPiece(
+        module.name,
+        'Estantes abiertos',
+        module.shelves,
+        module.widthMm - 2 * form.materialThicknessMm,
+        form.depthMm - SHELF_DEPTH_REDUCTION_MM,
+        form.materialThicknessMm,
+        'horizontal',
+      ),
+    );
+  }
+
+  if (module.type === 'filler') {
+    pieces.push(
+      createPiece(
+        module.name,
+        'Relleno de ajuste',
+        1,
+        form.heightMm,
+        module.widthMm,
+        form.materialThicknessMm,
+        'vertical',
+        DOOR_EDGE_MM,
       ),
     );
   }
@@ -249,18 +433,6 @@ function createPiece(
   };
 }
 
-function createWarnings(form: DesignEngineDemoForm): string[] {
-  const modulesWidth = form.doorModuleWidthMm + form.drawerModuleWidthMm;
-
-  if (modulesWidth === form.widthMm) {
-    return [];
-  }
-
-  return [
-    `La suma de módulos (${modulesWidth} mm) no coincide con el ancho total (${form.widthMm} mm).`,
-  ];
-}
-
 function validateForm(form: DesignEngineDemoForm): string[] {
   const requiredPositiveFields: Array<[keyof DesignEngineDemoForm, string]> = [
     ['widthMm', 'Ancho del mueble'],
@@ -289,6 +461,24 @@ function validateForm(form: DesignEngineDemoForm): string[] {
     errors.push('Si incluís zócalo, indicá la altura del zócalo.');
   }
 
+  if (form.selectedBaseModules.length === 0) {
+    errors.push('Seleccioná al menos un módulo prediseñado para componer el bajo mesada.');
+  }
+
+  for (const module of form.selectedBaseModules) {
+    if (!Number.isFinite(module.widthMm) || module.widthMm <= 0) {
+      errors.push(`El módulo "${module.name}" debe tener ancho mayor a 0.`);
+    }
+
+    if ((module.type === 'doors' || module.type === 'sink') && module.doors <= 0) {
+      errors.push(`El módulo "${module.name}" debe indicar cantidad de puertas.`);
+    }
+
+    if (module.type === 'drawers' && module.drawers <= 0) {
+      errors.push(`El módulo "${module.name}" debe indicar cantidad de cajones.`);
+    }
+  }
+
   if (form.currency === 'USD' && form.exchangeRateSell <= 0) {
     errors.push('Para cotizar en USD, el dólar blue venta manual debe ser mayor a 0.');
   }
@@ -304,7 +494,16 @@ function validateForm(form: DesignEngineDemoForm): string[] {
   return errors;
 }
 
-function createEmptyResult(errors: string[]): DesignEngineDemoResult {
+function createEmptyResult(
+  errors: string[],
+  moduleComposition: DemoModuleComposition = {
+    availableWidthMm: 0,
+    selectedWidthMm: 0,
+    differenceMm: 0,
+    status: 'encaja',
+    warnings: [],
+  },
+): DesignEngineDemoResult {
   const totals: DemoTotals = {
     subtotalBeforeWaste: 0,
     wasteAmount: 0,
@@ -319,7 +518,7 @@ function createEmptyResult(errors: string[]): DesignEngineDemoResult {
   return {
     pieces: [],
     cutlistItems: [],
-    warnings: [],
+    warnings: moduleComposition.warnings,
     errors,
     materialSurfaceM2: 0,
     estimatedBoards: 0,
@@ -327,6 +526,7 @@ function createEmptyResult(errors: string[]): DesignEngineDemoResult {
     materialCostArs: 0,
     edgeBandCostArs: 0,
     totals,
+    moduleComposition,
     notes: [DEMO_PRELIMINARY_NOTE],
   };
 }
@@ -367,6 +567,10 @@ function calculateTotals(input: {
   };
 }
 
+function cloneModules(modules: DemoSelectedBaseModule[]): DemoSelectedBaseModule[] {
+  return modules.map((module) => ({ ...module }));
+}
+
 function mm2ToM2(value: number): number {
   return value / 1_000_000;
 }
@@ -381,4 +585,8 @@ function roundMeasure(value: number): number {
 
 function roundCurrency(value: number): number {
   return Math.round((value + Number.EPSILON) * 100) / 100;
+}
+
+function formatMeasure(value: number): string {
+  return new Intl.NumberFormat('es-AR', { maximumFractionDigits: 2 }).format(value);
 }

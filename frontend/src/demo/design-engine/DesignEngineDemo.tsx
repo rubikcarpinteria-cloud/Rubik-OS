@@ -1,11 +1,17 @@
-import { useMemo, useState } from 'react';
+﻿import { useMemo, useState } from 'react';
 
 import {
   calculateDesignEngineDemo,
+  createWhatsApp3070DemoForm,
   DEFAULT_DESIGN_ENGINE_DEMO_FORM,
   DEMO_PRELIMINARY_NOTE,
 } from './demoCalculator';
-import type { DesignEngineDemoForm } from './types';
+import type {
+  DemoModuleComposition,
+  DemoModuleCompositionStatus,
+  DemoSelectedBaseModule,
+  DesignEngineDemoForm,
+} from './types';
 
 type NumberField = {
   [Key in keyof DesignEngineDemoForm]: DesignEngineDemoForm[Key] extends number ? Key : never;
@@ -60,14 +66,18 @@ const tableStyle = {
 export function DesignEngineDemo() {
   const [form, setForm] = useState<DesignEngineDemoForm>(DEFAULT_DESIGN_ENGINE_DEMO_FORM);
   const result = useMemo(() => calculateDesignEngineDemo(form), [form]);
-  const modulesWidthMm = form.doorModuleWidthMm + form.drawerModuleWidthMm;
-  const modulesDifferenceMm = modulesWidthMm - form.widthMm;
+  const modulesWidthMm = result.moduleComposition.selectedWidthMm;
+  const modulesDifferenceMm = result.moduleComposition.differenceMm;
 
   function updateNumberField(field: NumberField, value: string): void {
-    setForm((current) => ({
-      ...current,
-      [field]: Number(value),
-    }));
+    setForm((current) => {
+      const nextForm = {
+        ...current,
+        [field]: Number(value),
+      };
+
+      return syncSelectedModulesWithInternalFields(nextForm, field);
+    });
   }
 
   function updateBooleanField(field: BooleanField, value: boolean): void {
@@ -75,6 +85,10 @@ export function DesignEngineDemo() {
       ...current,
       [field]: value,
     }));
+  }
+
+  function loadWhatsApp3070Preset(): void {
+    setForm((current) => createWhatsApp3070DemoForm(current));
   }
 
   return (
@@ -194,6 +208,13 @@ export function DesignEngineDemo() {
           />
         </div>
       </section>
+
+      <BaseModuleCatalogSection
+        composition={result.moduleComposition}
+        measurementWarning={form.measurementWarning}
+        modules={form.selectedBaseModules}
+        onLoadPreset={loadWhatsApp3070Preset}
+      />
 
       <section aria-labelledby="quote-title" style={{ ...cardStyle, marginBottom: '20px' }}>
         <h2 id="quote-title">Datos de cotización</h2>
@@ -329,6 +350,104 @@ export function DesignEngineDemo() {
   );
 }
 
+function BaseModuleCatalogSection({
+  composition,
+  measurementWarning,
+  modules,
+  onLoadPreset,
+}: {
+  composition: DemoModuleComposition;
+  measurementWarning: string | null;
+  modules: DemoSelectedBaseModule[];
+  onLoadPreset: () => void;
+}) {
+  return (
+    <section
+      aria-labelledby="base-module-catalog-title"
+      style={{ ...cardStyle, marginBottom: '20px' }}
+    >
+      <h2 id="base-module-catalog-title">Catálogo de módulos prediseñados</h2>
+      <p>Seleccioná o cargá módulos prediseñados para componer el ancho total del bajo mesada.</p>
+      <button
+        style={{
+          background: '#1d4ed8',
+          border: 0,
+          borderRadius: '10px',
+          color: '#ffffff',
+          cursor: 'pointer',
+          font: 'inherit',
+          fontWeight: 800,
+          marginBottom: '16px',
+          padding: '10px 14px',
+        }}
+        type="button"
+        onClick={onLoadPreset}
+      >
+        Cargar cocina WhatsApp 3070 mm
+      </button>
+      {measurementWarning ? (
+        <p
+          role="alert"
+          style={{
+            background: '#fffbeb',
+            border: '1px solid #fcd34d',
+            borderRadius: '12px',
+            color: '#92400e',
+            fontWeight: 700,
+            marginTop: 0,
+            padding: '12px',
+          }}
+        >
+          {measurementWarning}
+        </p>
+      ) : null}
+      <div
+        style={{
+          display: 'grid',
+          gap: '12px',
+          gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))',
+          marginBottom: '16px',
+        }}
+      >
+        <Metric
+          label="Ancho total disponible"
+          value={`${formatNumber(composition.availableWidthMm)} mm`}
+        />
+        <Metric label="Suma de módulos" value={`${formatNumber(composition.selectedWidthMm)} mm`} />
+        <Metric label="Diferencia" value={formatSignedMm(composition.differenceMm)} />
+        <Metric label="Estado" value={formatCompositionStatus(composition.status)} />
+      </div>
+      <p style={{ fontWeight: 800 }}>{`Estado: ${formatCompositionStatus(composition.status)}`}</p>
+      <div style={tableWrapperStyle}>
+        <table aria-label="Módulos prediseñados seleccionados" style={tableStyle}>
+          <thead>
+            <tr>
+              <TableHeader label="Nombre" />
+              <TableHeader label="Tipo" />
+              <TableHeader label="Ancho" />
+              <TableHeader label="Puertas" />
+              <TableHeader label="Cajones" />
+              <TableHeader label="Estantes" />
+            </tr>
+          </thead>
+          <tbody>
+            {modules.map((module) => (
+              <tr key={module.code}>
+                <TableCell>{module.name}</TableCell>
+                <TableCell>{formatModuleType(module.type)}</TableCell>
+                <TableCell>{formatNumber(module.widthMm)} mm</TableCell>
+                <TableCell>{module.doors}</TableCell>
+                <TableCell>{module.drawers}</TableCell>
+                <TableCell>{module.shelves}</TableCell>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </section>
+  );
+}
+
 function ModulesWidthStatus({
   differenceMm,
   modulesWidthMm,
@@ -400,6 +519,7 @@ function ModulesWidthStatus({
     </div>
   );
 }
+
 function NumberInput({
   helperText,
   label,
@@ -610,6 +730,85 @@ function TableHeader({ label }: { label: string }) {
 
 function TableCell({ children }: { children: React.ReactNode }) {
   return <td style={{ borderBottom: '1px solid #edf2f7', padding: '10px' }}>{children}</td>;
+}
+
+function syncSelectedModulesWithInternalFields(
+  form: DesignEngineDemoForm,
+  field: NumberField,
+): DesignEngineDemoForm {
+  const doorFields: ReadonlyArray<NumberField> = ['doorModuleWidthMm', 'doorCount', 'shelfCount'];
+  const drawerFields: ReadonlyArray<NumberField> = ['drawerModuleWidthMm', 'drawerCount'];
+
+  if (!doorFields.includes(field) && !drawerFields.includes(field)) {
+    return form;
+  }
+
+  let updatedDoorModule = false;
+  let updatedDrawerModule = false;
+
+  return {
+    ...form,
+    selectedBaseModules: form.selectedBaseModules.map((module) => {
+      if (module.type === 'doors' && doorFields.includes(field) && !updatedDoorModule) {
+        updatedDoorModule = true;
+
+        return {
+          ...module,
+          widthMm: form.doorModuleWidthMm,
+          doors: form.doorCount,
+          shelves: form.shelfCount,
+        };
+      }
+
+      if (module.type === 'drawers' && drawerFields.includes(field) && !updatedDrawerModule) {
+        updatedDrawerModule = true;
+
+        return {
+          ...module,
+          widthMm: form.drawerModuleWidthMm,
+          drawers: form.drawerCount,
+        };
+      }
+
+      return module;
+    }),
+  };
+}
+
+function formatCompositionStatus(status: DemoModuleCompositionStatus): string {
+  if (status === 'encaja') {
+    return 'encaja';
+  }
+
+  if (status === 'falta_relleno') {
+    return 'falta relleno';
+  }
+
+  return 'supera ancho disponible';
+}
+
+function formatModuleType(type: DemoSelectedBaseModule['type']): string {
+  if (type === 'doors') {
+    return 'puertas';
+  }
+
+  if (type === 'drawers') {
+    return 'cajonera';
+  }
+
+  if (type === 'open_shelves') {
+    return 'estantes abiertos';
+  }
+
+  if (type === 'sink') {
+    return 'piletero';
+  }
+
+  if (type === 'filler') {
+    return 'relleno/ajuste';
+  }
+
+  return 'horno';
 }
 
 function formatCurrency(value: number): string {

@@ -1,7 +1,10 @@
-import { cleanup, fireEvent, render, screen } from '@testing-library/react';
+﻿import { cleanup, fireEvent, render, screen } from '@testing-library/react';
 import { afterEach, describe, expect, it } from 'vitest';
 
 import { App } from '../src/App';
+
+const WHATSAPP_3070_WARNING =
+  'Composición preliminar tomada de medición/foto WhatsApp. Validar en obra antes de corte.';
 
 describe('Design engine internal demo', () => {
   afterEach(() => {
@@ -45,7 +48,44 @@ describe('Design engine internal demo', () => {
     ).toBeInTheDocument();
     expect(screen.getByText('Ancho total')).toBeInTheDocument();
     expect(screen.getByText('Suma módulos')).toBeInTheDocument();
-    expect(screen.getByText('Diferencia')).toBeInTheDocument();
+    expect(screen.getAllByText('Diferencia').length).toBeGreaterThanOrEqual(1);
+  });
+
+  it('shows the predefined base module catalog section', () => {
+    window.history.pushState(null, '', '/demo/design-engine');
+
+    render(<App />);
+
+    expect(
+      screen.getByRole('heading', { name: 'Catálogo de módulos prediseñados' }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText(
+        'Seleccioná o cargá módulos prediseñados para componer el ancho total del bajo mesada.',
+      ),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole('button', { name: 'Cargar cocina WhatsApp 3070 mm' }),
+    ).toBeInTheDocument();
+  });
+
+  it('loads the WhatsApp 3070 mm kitchen preset', () => {
+    window.history.pushState(null, '', '/demo/design-engine');
+
+    render(<App />);
+
+    fireEvent.click(screen.getByRole('button', { name: 'Cargar cocina WhatsApp 3070 mm' }));
+
+    expect(screen.getByLabelText('Ancho mueble (mm)')).toHaveValue(3070);
+    expect(screen.getByLabelText('Alto mueble (mm)')).toHaveValue(750);
+    expect(screen.getByLabelText('Profundidad (mm)')).toHaveValue(650);
+    expect(screen.getAllByText('3.070 mm').length).toBeGreaterThanOrEqual(2);
+    expect(screen.getAllByText('Puertas doble 800 mm').length).toBeGreaterThanOrEqual(1);
+    expect(screen.getAllByText('Cajonera 560 mm').length).toBeGreaterThanOrEqual(1);
+    expect(screen.getAllByText('Puertas doble 1000 mm').length).toBeGreaterThanOrEqual(1);
+    expect(screen.getAllByText('Relleno/ajuste 710 mm').length).toBeGreaterThanOrEqual(1);
+    expect(screen.getByText('Estado: encaja')).toBeInTheDocument();
+    expect(screen.getAllByText(WHATSAPP_3070_WARNING).length).toBeGreaterThanOrEqual(1);
   });
 
   it('shows red and yellow alerts when internal module widths do not match', () => {
@@ -58,14 +98,14 @@ describe('Design engine internal demo', () => {
     expect(
       screen.getByText('Alerta roja: la suma de módulos supera el ancho total.'),
     ).toBeInTheDocument();
-    expect(screen.getByText('+800 mm')).toBeInTheDocument();
+    expect(screen.getAllByText('+800 mm').length).toBeGreaterThanOrEqual(1);
 
     fireEvent.change(screen.getByLabelText('Ancho mueble (mm)'), { target: { value: '1900' } });
 
     expect(
       screen.getByText('Alerta amarilla: la suma de módulos es menor que el ancho total.'),
     ).toBeInTheDocument();
-    expect(screen.getByText('-100 mm')).toBeInTheDocument();
+    expect(screen.getAllByText('-100 mm').length).toBeGreaterThanOrEqual(1);
   });
 
   it('treats toe kick height as optional when toe kick is not included', () => {

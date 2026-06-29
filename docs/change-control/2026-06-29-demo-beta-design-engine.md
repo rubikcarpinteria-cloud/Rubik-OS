@@ -82,3 +82,11 @@
 - Si los módulos no encajan, Rubik OS debe advertir.
 - Los módulos pueden ajustarse por obra, pero requieren validación de Diego.
 - Esta funcionalidad aproxima el flujo deseado tipo PolyBoard sin depender de PolyBoard.
+
+## Demo visual — composición modular 3070 mm
+
+- Se conectó la demo con el concepto de catálogo de módulos prediseñados.
+- Se agregó preset de cocina WhatsApp 3070 mm.
+- La demo muestra módulos seleccionados, suma, diferencia y advertencias.
+- La composición sigue siendo preliminar y requiere validación de Diego.
+- No guarda en base de datos ni envía a maderera.
