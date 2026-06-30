@@ -9,7 +9,8 @@ and is not meant to be executed against Supabase until it is reviewed.
 The model turns the Phase 1 architecture into a PostgreSQL/Supabase schema for
 daily operations. It covers client intake, work orders, conversations, files,
 measurements, design, quotes, approvals, blockers, planning, payments,
-appointments, suppliers, inventory and post-sale.
+appointments, suppliers, inventory, AI agents, operational readiness checks and
+post-sale.
 
 Rubik OS is not only a chatbot, agenda, quote tool or design tool. The database
 therefore keeps the full commercial, technical and operational trace around the
@@ -26,6 +27,7 @@ real client request or project and connects:
 - Quotes and quote line items.
 - Diego approvals.
 - Blockers, dependencies and planning alerts.
+- AI agents and operational readiness evidence.
 - Payments and appointments.
 - Supplier requests and post-sale cases.
 
@@ -83,10 +85,20 @@ approval fields.
 - `planning_alerts`
 - `project_reactivations`
 - `appointments`
+- `operational_readiness_checks`
+- `readiness_check_evidence`
 
 These tables enforce the business rule that no critical step should advance
 without required confirmations. A tentative date is not a confirmed date, and a
 paused project must return to planning review before being reactivated.
+
+`operational_readiness_checks` adds an evidence gate before critical operational movement. If a check blocks worker dispatch, promises of delivery or material in transit are not enough; Rubik OS needs verified evidence such as remitos, photos, videos, reception documents or site-ready checklists.
+
+### AI Agents
+
+- `ai_agents`
+
+This table registers the specialized agents described in `AI_AGENTS.md`, including `sales_ai`, `design_ai`, `pricing_ai`, `supplier_ai`, `planning_ai`, `operational_control_ai` and `post_sale_ai`.
 
 ### Suppliers And Inventory
 
@@ -110,9 +122,11 @@ the original work order and client.
 - `work_orders.source_channel_id` references `contact_channels.id`.
 - `messages`, `attachments`, `measurements`, `designs`, `quotes`, `approvals`,
   `blockers`, `dependencies`, `planning_alerts`, `payments`, `appointments`,
-  `supplier_requests` and `post_sale_cases` reference `work_orders.id`.
+  `supplier_requests`, `operational_readiness_checks` and `post_sale_cases`
+  reference `work_orders.id`.
 - `design_modules` and `design_parts` hang from `designs`.
 - `quote_items` hangs from `quotes`.
+- `readiness_check_evidence` hangs from `operational_readiness_checks` and may reference `attachments`.
 - `project_reactivations.diego_approval_id` can reference the approval that
   authorizes the reactivation.
 - `supplier_requests` and `inventory_items` can reference `suppliers`.
@@ -125,6 +139,7 @@ the original work order and client.
 - Sales AI may create incomplete orders, but missing critical data must be
   visible as pending information, blockers or planning alerts.
 - Planning must distinguish tentative dates from confirmed dates.
+- Worker or installer dispatch requires verified readiness when an operational readiness check blocks dispatch.
 - An externally paused project does not keep automatic operational priority.
 - Reactivation requires planning review and Diego approval when it affects
   agenda or capacity.

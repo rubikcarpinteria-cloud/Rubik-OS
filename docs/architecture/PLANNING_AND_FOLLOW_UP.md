@@ -55,3 +55,9 @@ Una fecha confirmada requiere que las condiciones criticas esten resueltas y que
 ## Regla central
 
 Si falta una confirmacion critica, la orden no puede pasar al siguiente estado critico. Rubik OS debe mostrar que falta, quien debe resolverlo y que decision esta bloqueada.
+
+## Control operativo con evidencia
+
+La IA de planeamiento trabaja junto con `operational_control_ai`, documentada en `AI_AGENTS.md`. Cuando una fecha implica enviar equipo, instaladores o terceros, Rubik OS debe revisar `operational_readiness_checks` antes de confirmar el despacho.
+
+Promesas como "hoy llega", "esta en camino" o "ya deberia estar" no liberan instalacion. Si un check tiene `blocks_worker_dispatch = true`, el equipo no deberia enviarse hasta que el estado sea `confirmed` o `not_applicable`.

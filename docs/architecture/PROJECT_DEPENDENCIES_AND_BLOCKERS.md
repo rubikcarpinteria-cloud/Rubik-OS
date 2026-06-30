@@ -68,3 +68,9 @@ Rubik OS debe detectar este escenario asi:
 - Diego debe aprobar la reactivacion si afecta agenda o capacidad.
 - Rubik OS debe avisar cruces entre proyectos.
 - "Llegaron las puertas" no significa "instalacion inmediata".
+
+## Evidencia de obra lista
+
+Para liberar instalacion no alcanza una promesa verbal ni material en camino. Rubik OS debe poder crear `operational_readiness_checks` y asociar evidencia en `readiness_check_evidence`: remitos, fotos, videos, documentos de recepcion, checklists o confirmaciones por departamento/sector.
+
+El agente responsable de este control transversal es `operational_control_ai`; no es postventa y debe bloquear despacho cuando falta evidencia verificable.
