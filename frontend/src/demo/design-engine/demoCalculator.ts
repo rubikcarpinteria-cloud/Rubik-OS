@@ -12,8 +12,6 @@
 
 export const DEMO_PRELIMINARY_NOTE =
   'Cotización preliminar sujeta a validación de Diego y actualización de precios de materiales.';
-export const WHATSAPP_3070_VALIDATION_WARNING =
-  'Composición preliminar tomada de medición/foto WhatsApp. Validar en obra antes de corte.';
 
 const DIEGO_VALIDATION_NOTE =
   'Demo interna beta. Despiece preliminar generado por Rubik OS: requiere validación de Diego antes de enviar a corte.';
@@ -172,39 +170,21 @@ export const DEMO_MODULE_LIBRARY: readonly DemoModuleTemplate[] = [
   }),
 ];
 
-const DEFAULT_DEMO_BASE_MODULES: DemoSelectedBaseModule[] = [
+export const GENERIC_KITCHEN_EXAMPLE_MODULES: DemoSelectedBaseModule[] = [
   createDemoModuleFromTemplate('BASE_DOORS_STANDARD', 1, {
-    code: 'BASE_DOORS_900_DOUBLE',
-    name: 'Módulo bajo puertas doble 900',
-    widthMm: 900,
-  }),
-  createDemoModuleFromTemplate('BASE_DRAWERS_STANDARD', 2, {
-    code: 'BASE_DRAWERS_900_3_DEMO',
-    name: 'Cajonera baja 900 con 3 cajones',
-    widthMm: 900,
-  }),
-];
-
-export const WHATSAPP_3070_DEMO_MODULES: DemoSelectedBaseModule[] = [
-  createDemoModuleFromTemplate('BASE_DOORS_STANDARD', 1, {
-    code: 'BASE_DOORS_800_DOUBLE',
-    name: 'Puertas doble 800 mm',
+    code: 'EXAMPLE_BASE_DOORS_800',
+    name: 'Ejemplo puertas 800 mm',
     widthMm: 800,
   }),
   createDemoModuleFromTemplate('BASE_DRAWERS_STANDARD', 2, {
-    code: 'BASE_DRAWERS_560_3_DEMO',
-    name: 'Cajonera 560 mm',
+    code: 'EXAMPLE_DRAWERS_560',
+    name: 'Ejemplo cajonera 560 mm',
     widthMm: 560,
   }),
-  createDemoModuleFromTemplate('BASE_DOORS_STANDARD', 3, {
-    code: 'BASE_DOORS_1000_DOUBLE_DEMO',
-    name: 'Puertas doble 1000 mm',
-    widthMm: 1000,
-  }),
-  createDemoModuleFromTemplate('TERMINAL_STANDARD', 4, {
-    code: 'BASE_FILLER_710_DEMO',
-    name: 'Relleno/ajuste 710 mm',
-    widthMm: 710,
+  createDemoModuleFromTemplate('BASE_SINK_STANDARD', 3, {
+    code: 'EXAMPLE_SINK_440',
+    name: 'Ejemplo bajo bacha 440 mm',
+    widthMm: 440,
   }),
 ];
 export const DEFAULT_DESIGN_ENGINE_DEMO_FORM: DesignEngineDemoForm = {
@@ -221,7 +201,7 @@ export const DEFAULT_DESIGN_ENGINE_DEMO_FORM: DesignEngineDemoForm = {
   shelfCount: 1,
   drawerModuleWidthMm: 900,
   drawerCount: 3,
-  selectedBaseModules: cloneModules(DEFAULT_DEMO_BASE_MODULES),
+  selectedBaseModules: [],
   measurementWarning: null,
   boardPriceArs: 110_000,
   boardWidthMm: 1830,
@@ -237,19 +217,21 @@ export const DEFAULT_DESIGN_ENGINE_DEMO_FORM: DesignEngineDemoForm = {
   exchangeRateSell: 1350,
 };
 
-export function createWhatsApp3070DemoForm(current: DesignEngineDemoForm): DesignEngineDemoForm {
+export function createGenericKitchenExampleForm(
+  current: DesignEngineDemoForm,
+): DesignEngineDemoForm {
   return {
     ...current,
-    widthMm: 3070,
-    heightMm: 750,
-    depthMm: 650,
+    widthMm: 1800,
+    heightMm: 720,
+    depthMm: 620,
     doorModuleWidthMm: 800,
     doorCount: 2,
     shelfCount: 1,
     drawerModuleWidthMm: 560,
     drawerCount: 3,
-    selectedBaseModules: cloneModules(WHATSAPP_3070_DEMO_MODULES),
-    measurementWarning: WHATSAPP_3070_VALIDATION_WARNING,
+    selectedBaseModules: cloneModules(GENERIC_KITCHEN_EXAMPLE_MODULES),
+    measurementWarning: null,
   };
 }
 
@@ -257,13 +239,16 @@ export function calculateDesignEngineDemo(form: DesignEngineDemoForm): DesignEng
   const normalizedForm = normalizeToeKick(form);
   const moduleComposition = createModuleComposition(normalizedForm);
   const errors = validateForm(normalizedForm);
+  const viewer3d =
+    normalizedForm.selectedBaseModules.length > 0
+      ? createViewer3dModel(normalizedForm, moduleComposition)
+      : null;
 
   if (errors.length > 0) {
-    return createEmptyResult(errors, moduleComposition);
+    return createEmptyResult(errors, moduleComposition, viewer3d);
   }
 
   const warnings = moduleComposition.warnings;
-  const viewer3d = createViewer3dModel(normalizedForm, moduleComposition);
   const pieces = createPieces(normalizedForm);
   const cutlistItems = pieces.map((piece): DemoCutlistItem => {
     return {
@@ -665,6 +650,7 @@ function createEmptyResult(
     status: 'encaja',
     warnings: [],
   },
+  viewer3d: Demo3DViewerModel | null = null,
 ): DesignEngineDemoResult {
   const totals: DemoTotals = {
     subtotalBeforeWaste: 0,
@@ -689,7 +675,7 @@ function createEmptyResult(
     edgeBandCostArs: 0,
     totals,
     moduleComposition,
-    viewer3d: null,
+    viewer3d,
     notes: [DEMO_PRELIMINARY_NOTE],
   };
 }

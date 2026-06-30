@@ -4,7 +4,7 @@ import type { DragEvent } from 'react';
 import {
   calculateDesignEngineDemo,
   createDemoModuleFromTemplate,
-  createWhatsApp3070DemoForm,
+  createGenericKitchenExampleForm,
   DEFAULT_DESIGN_ENGINE_DEMO_FORM,
   DEMO_MODULE_LIBRARY,
   DEMO_PRELIMINARY_NOTE,
@@ -93,8 +93,8 @@ export function DesignEngineDemo() {
     }));
   }
 
-  function loadWhatsApp3070Preset(): void {
-    setForm((current) => createWhatsApp3070DemoForm(current));
+  function loadGenericKitchenExample(): void {
+    setForm((current) => createGenericKitchenExampleForm(current));
   }
 
   function addTemplateToWall(templateCode: string): void {
@@ -285,7 +285,7 @@ export function DesignEngineDemo() {
         composition={result.moduleComposition}
         measurementWarning={form.measurementWarning}
         modules={form.selectedBaseModules}
-        onLoadPreset={loadWhatsApp3070Preset}
+        onLoadPreset={loadGenericKitchenExample}
       />
 
       <section aria-labelledby="quote-title" style={{ ...cardStyle, marginBottom: '20px' }}>
@@ -1027,7 +1027,7 @@ function BaseModuleCatalogSection({
         type="button"
         onClick={onLoadPreset}
       >
-        Cargar cocina WhatsApp 3070 mm
+        Cargar ejemplo de cocina
       </button>
       {measurementWarning ? (
         <p

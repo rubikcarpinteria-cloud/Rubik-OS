@@ -38,7 +38,7 @@ export function Simple3DViewer({ model }: { model: Demo3DViewerModel | null }) {
     <section aria-labelledby="simple-3d-title" style={cardStyle}>
       <h2 id="simple-3d-title">Vista 3D técnica preliminar</h2>
       {!model ? (
-        <p>Completá las medidas y módulos para generar la vista técnica.</p>
+        <p>Agregá módulos desde el catálogo para generar la vista técnica.</p>
       ) : (
         <>
           <p style={{ fontWeight: 800 }}>{model.validationNote}</p>
@@ -378,7 +378,7 @@ function ModuleDetails({
 }) {
   if (module.type === 'doors' || module.type === 'sink') {
     return (
-      <>
+      <g aria-label={`Puertas de ${module.name}`}>
         {Array.from({ length: Math.max(module.doors - 1, 0) }).map((_, index) => {
           const lineX = x + ((index + 1) * width) / module.doors;
 
@@ -403,13 +403,13 @@ function ModuleDetails({
           y1={y + bodyHeight * 0.55}
           y2={y + bodyHeight * 0.55}
         />
-      </>
+      </g>
     );
   }
 
   if (module.type === 'drawers') {
     return (
-      <>
+      <g aria-label={`Divisiones de cajones de ${module.name}`}>
         {Array.from({ length: Math.max(module.drawers - 1, 0) }).map((_, index) => {
           const lineY = y + ((index + 1) * bodyHeight) / module.drawers;
 
@@ -425,7 +425,7 @@ function ModuleDetails({
             />
           );
         })}
-      </>
+      </g>
     );
   }
 
