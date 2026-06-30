@@ -2,36 +2,40 @@
 
 ## Cambio
 
-El Motor de Diseño Rubik evoluciona desde una demo principalmente tabular hacia un constructor
-visual modular tipo Tetris/PolyBoard.
+El Motor de Diseño Rubik evoluciona desde una demo técnica basada en tabla hacia un
+constructor visual modular tipo Tetris/PolyBoard.
 
-La experiencia principal ahora prioriza:
+La experiencia principal pasa a estar compuesta por:
 
 - Catálogo visual de tarjetas con módulos prediseñados.
 - Pared de diseño con regla en milímetros y bloques proporcionales al ancho.
-- Módulos seleccionables con edición de ancho, movimiento izquierda/derecha y eliminación.
-- Soporte inicial de drag and drop desde tarjeta hacia la pared.
-- Visor 3D existente conectado a la composición actual.
-- Tablas técnicas conservadas como detalle secundario para validación, despiece, cutlist y
-  cotización preliminar.
+- Editor de módulo seleccionado para ancho, orden y eliminación.
+- Visor 3D preliminar conectado a la composición actual.
+- Detalle técnico tabular conservado como soporte secundario.
 
 ## Alcance incremental
 
-El cambio mantiene `DemoModuleTemplate` y `DemoSelectedBaseModule` como la separación entre
-plantillas e instancias. La pared de diseño sigue calculando espacio usado, espacio restante y
-exceso desde la misma composición modular que alimenta el despiece y la cotización.
+La primera versión mantiene una interacción funcional mediante botones:
+
+- Agregar módulo desde tarjeta.
+- Seleccionar bloque en la pared.
+- Editar ancho respetando rango mínimo y máximo.
+- Mover módulos a izquierda o derecha.
+- Eliminar módulos.
+
+La arquitectura queda preparada para drag and drop real porque el catálogo usa
+`moduleTemplate`, la pared trabaja con `moduleInstance`, y el orden de módulos se
+resuelve como una lista de instancias.
 
 ## Reglas preservadas
 
-- Rangos de ancho mínimo y máximo por plantilla.
-- Recalculo de espacio usado/restante/exceso.
+- Anchos estándar, mínimos y máximos por módulo.
+- Recalculo de espacio usado, restante y exceso.
 - Regla automática de una puerta cuando un módulo de puertas baja a 400 mm.
-- Generación de piezas, cutlist y cotización preliminar.
-- Advertencias de validación para mediciones preliminares y exceso/faltante de ancho.
+- Superficie para despiece, cutlist y cotización preliminar.
 
 ## Motivo
 
-La tabla técnica sirve para auditoría interna, pero la experiencia final necesita que el usuario vea
-cómo se arma la cocina o bajo mesada con módulos visuales. Esta iteración cambia la demo hacia una
-interacción más cercana a PolyBoard: elegir módulos, componerlos en una pared y ajustar el diseño
-viendo el impacto inmediato.
+La tabla técnica es útil para validación interna, pero no comunica la experiencia
+final que necesita Rubik: armar una cocina o bajo mesada viendo cómo se compone el
+frente modular y cómo impactan los anchos en el espacio disponible.
