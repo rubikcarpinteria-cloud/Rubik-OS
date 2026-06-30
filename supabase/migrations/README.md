@@ -1,4 +1,7 @@
-- Supabase CLI lee migraciones desde supabase/migrations.
-- database/migrations contiene la copia historica/documental usada por el proyecto.
-- Mientras no migremos definitivamente la convencion, ambas carpetas deben mantenerse sincronizadas.
-- No ejecutar db push si hay diferencias entre ambas.
+- Supabase CLI usa el prefijo antes del primer "_" como version.
+- Por eso no pueden existir dos archivos con el mismo prefijo.
+- database/migrations conserva la historia original del proyecto.
+- supabase/migrations es la carpeta operativa para Supabase CLI.
+- En supabase/migrations las versiones deben ser unicas.
+- El staging ya recibio 001 a 005_historial_eventos antes de detectar el choque, por eso quotes empieza como 006 en esta carpeta.
+- No ejecutar db push si hay versiones duplicadas.
