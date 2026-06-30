@@ -1,4 +1,4 @@
-﻿import { cleanup, fireEvent, render, screen } from '@testing-library/react';
+﻿import { cleanup, fireEvent, render, screen, within } from '@testing-library/react';
 import { afterEach, describe, expect, it } from 'vitest';
 
 import { App } from '../src/App';
@@ -187,6 +187,91 @@ describe('Design engine internal demo', () => {
     expect(screen.getByText('Módulo piletero con fondo y calados a validar.')).toBeInTheDocument();
   });
 
+  it('renders the visual modular catalog and design wall', () => {
+    window.history.pushState(null, '', '/demo/design-engine');
+
+    render(<App />);
+
+    expect(screen.getByRole('heading', { name: 'Catálogo visual de módulos' })).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: 'Espacio de trabajo' })).toBeInTheDocument();
+    expect(screen.getByLabelText('Regla visual en milímetros')).toBeInTheDocument();
+    expect(screen.getByLabelText('Pared de diseño')).toBeInTheDocument();
+    expect(screen.getAllByText('Ancho estándar').length).toBeGreaterThanOrEqual(1);
+    expect(screen.getAllByText('Rango').length).toBeGreaterThanOrEqual(1);
+  });
+
+  it('adds a visual catalog card to the design wall', () => {
+    window.history.pushState(null, '', '/demo/design-engine');
+
+    render(<App />);
+
+    fireEvent.click(screen.getByRole('button', { name: 'Agregar Bajo mesada bacha' }));
+
+    const wall = screen.getByLabelText('Pared de diseño');
+
+    expect(
+      within(wall).getByRole('button', { name: /Seleccionar módulo 3: Bajo mesada bacha/ }),
+    ).toBeInTheDocument();
+    expect(screen.getAllByText('2.600 mm').length).toBeGreaterThanOrEqual(1);
+    expect(screen.getAllByText('800 mm').length).toBeGreaterThanOrEqual(1);
+  });
+
+  it('edits width from the visual selected module editor and recalculates space', () => {
+    window.history.pushState(null, '', '/demo/design-engine');
+
+    render(<App />);
+
+    fireEvent.change(screen.getByLabelText('Editar ancho de Módulo bajo puertas doble 900'), {
+      target: { value: '400' },
+    });
+
+    expect(screen.getByText('Ajuste automático: ancho 400 mm usa 1 puerta.')).toBeInTheDocument();
+    expect(screen.getAllByText('1.300 mm').length).toBeGreaterThanOrEqual(1);
+    expect(screen.getAllByText('500 mm').length).toBeGreaterThanOrEqual(1);
+  });
+
+  it('moves module order from the visual wall controls', () => {
+    window.history.pushState(null, '', '/demo/design-engine');
+
+    render(<App />);
+
+    fireEvent.click(
+      screen.getByRole('button', { name: 'Seleccionar módulo 2: Cajonera baja 900 con 3 cajones' }),
+    );
+    fireEvent.click(screen.getByRole('button', { name: 'Mover izquierda' }));
+
+    const technicalTable = screen.getByRole('table', {
+      name: 'Módulos inteligentes agregados a la pared',
+    });
+    const rows = within(technicalTable).getAllByRole('row');
+
+    expect(
+      within(rows[1] as HTMLElement).getByText('Cajonera baja 900 con 3 cajones'),
+    ).toBeInTheDocument();
+    expect(
+      within(rows[2] as HTMLElement).getByText('Módulo bajo puertas doble 900'),
+    ).toBeInTheDocument();
+  });
+
+  it('removes a module from the visual wall controls', () => {
+    window.history.pushState(null, '', '/demo/design-engine');
+
+    render(<App />);
+
+    fireEvent.click(
+      screen.getByRole('button', { name: 'Seleccionar módulo 2: Cajonera baja 900 con 3 cajones' }),
+    );
+    fireEvent.click(screen.getByRole('button', { name: 'Eliminar módulo' }));
+
+    const wall = screen.getByLabelText('Pared de diseño');
+
+    expect(
+      within(wall).queryByRole('button', {
+        name: /Seleccionar módulo .*Cajonera baja 900 con 3 cajones/,
+      }),
+    ).not.toBeInTheDocument();
+    expect(screen.getAllByText('900 mm').length).toBeGreaterThanOrEqual(1);
+  });
   it('recalculates the door count automatically when a smart module width changes', () => {
     window.history.pushState(null, '', '/demo/design-engine');
 
