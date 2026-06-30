@@ -2,14 +2,18 @@
 
 import {
   calculateDesignEngineDemo,
+  createDemoModuleFromTemplate,
   createWhatsApp3070DemoForm,
   DEFAULT_DESIGN_ENGINE_DEMO_FORM,
+  DEMO_MODULE_LIBRARY,
   DEMO_PRELIMINARY_NOTE,
+  updateDemoSelectedModuleWidth,
 } from './demoCalculator';
 import { Simple3DViewer } from './Simple3DViewer';
 import type {
   DemoModuleComposition,
   DemoModuleCompositionStatus,
+  DemoModuleTemplate,
   DemoSelectedBaseModule,
   DesignEngineDemoForm,
 } from './types';
@@ -90,6 +94,25 @@ export function DesignEngineDemo() {
 
   function loadWhatsApp3070Preset(): void {
     setForm((current) => createWhatsApp3070DemoForm(current));
+  }
+
+  function addTemplateToWall(templateCode: string): void {
+    setForm((current) => ({
+      ...current,
+      selectedBaseModules: [
+        ...current.selectedBaseModules,
+        createDemoModuleFromTemplate(templateCode, current.selectedBaseModules.length + 1),
+      ],
+    }));
+  }
+
+  function updateModuleInstanceWidth(moduleCode: string, value: string): void {
+    setForm((current) => ({
+      ...current,
+      selectedBaseModules: current.selectedBaseModules.map((module) =>
+        module.code === moduleCode ? updateDemoSelectedModuleWidth(module, Number(value)) : module,
+      ),
+    }));
   }
 
   return (
@@ -209,6 +232,15 @@ export function DesignEngineDemo() {
           />
         </div>
       </section>
+
+      <SmartModuleLibrarySection
+        availableWidthMm={form.widthMm}
+        composition={result.moduleComposition}
+        modules={form.selectedBaseModules}
+        templates={DEMO_MODULE_LIBRARY}
+        onAddTemplate={addTemplateToWall}
+        onUpdateModuleWidth={updateModuleInstanceWidth}
+      />
 
       <BaseModuleCatalogSection
         composition={result.moduleComposition}
@@ -353,6 +385,173 @@ export function DesignEngineDemo() {
   );
 }
 
+function SmartModuleLibrarySection({
+  availableWidthMm,
+  composition,
+  modules,
+  templates,
+  onAddTemplate,
+  onUpdateModuleWidth,
+}: {
+  availableWidthMm: number;
+  composition: DemoModuleComposition;
+  modules: DemoSelectedBaseModule[];
+  templates: readonly DemoModuleTemplate[];
+  onAddTemplate: (templateCode: string) => void;
+  onUpdateModuleWidth: (moduleCode: string, value: string) => void;
+}) {
+  const remainingMm = Math.max(availableWidthMm - composition.selectedWidthMm, 0);
+  const overflowMm = Math.max(composition.selectedWidthMm - availableWidthMm, 0);
+  const automaticNotes = modules.flatMap((module) => module.autoAdjustmentNotes ?? []);
+
+  return (
+    <section aria-labelledby="smart-library-title" style={{ ...cardStyle, marginBottom: '20px' }}>
+      <h2 id="smart-library-title">Biblioteca de módulos inteligentes</h2>
+      <p>
+        Armado modular tipo Tetris: elegí módulos estándar ya inteligentes, agregalos a la pared y
+        ajustá principalmente el ancho o accesorios. La plantilla recalcula puertas, estantes,
+        reglas constructivas y avisos técnicos.
+      </p>
+      <div style={gridStyle}>
+        <Metric label="Pared / espacio disponible" value={`${formatNumber(availableWidthMm)} mm`} />
+        <Metric label="Espacio usado" value={`${formatNumber(composition.selectedWidthMm)} mm`} />
+        <Metric label="Espacio restante" value={`${formatNumber(remainingMm)} mm`} />
+        <Metric label="Exceso" value={`${formatNumber(overflowMm)} mm`} />
+      </div>
+
+      <h3>Biblioteca estándar</h3>
+      <div style={tableWrapperStyle}>
+        <table aria-label="Biblioteca de módulos estándar" style={tableStyle}>
+          <thead>
+            <tr>
+              <TableHeader label="Módulo" />
+              <TableHeader label="Tipo" />
+              <TableHeader label="Ancho base" />
+              <TableHeader label="Rango ajustable" />
+              <TableHeader label="Reglas" />
+              <TableHeader label="Acción" />
+            </tr>
+          </thead>
+          <tbody>
+            {templates.map((template) => (
+              <tr key={template.templateCode}>
+                <TableCell>{template.name}</TableCell>
+                <TableCell>{formatTemplateCategory(template.category)}</TableCell>
+                <TableCell>{formatNumber(template.defaultWidthMm)} mm</TableCell>
+                <TableCell>
+                  {formatNumber(template.minWidthMm)}-{formatNumber(template.maxWidthMm)} mm
+                </TableCell>
+                <TableCell>
+                  {template.defaultDoors > 0 ? `${template.defaultDoors} puerta(s)` : null}
+                  {template.defaultDrawers > 0 ? `${template.defaultDrawers} cajón(es)` : null}
+                  {template.defaultShelves > 0 ? ` · ${template.defaultShelves} estante(s)` : null}
+                  {template.allowsAdvancedConfig ? ' · edición avanzada futura' : null}
+                </TableCell>
+                <TableCell>
+                  <button
+                    style={{
+                      background: '#0f766e',
+                      border: 0,
+                      borderRadius: '10px',
+                      color: '#ffffff',
+                      cursor: 'pointer',
+                      font: 'inherit',
+                      fontWeight: 800,
+                      padding: '8px 10px',
+                    }}
+                    type="button"
+                    onClick={() => onAddTemplate(template.templateCode)}
+                  >
+                    Agregar {template.name}
+                  </button>
+                </TableCell>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+
+      <h3>Módulos agregados a la pared</h3>
+      <p>
+        El usuario no carga alto, profundidad, puertas, estantes, fondo ni refuerzos desde cero:
+        esos datos vienen de la plantilla. En esta primera versión se edita el ancho y Rubik OS
+        recalcula.
+      </p>
+      <div style={tableWrapperStyle}>
+        <table aria-label="Módulos inteligentes agregados a la pared" style={tableStyle}>
+          <thead>
+            <tr>
+              <TableHeader label="Módulo" />
+              <TableHeader label="Ancho editable" />
+              <TableHeader label="Alto" />
+              <TableHeader label="Profundidad" />
+              <TableHeader label="Puertas" />
+              <TableHeader label="Cajones" />
+              <TableHeader label="Estantes" />
+              <TableHeader label="Datos técnicos" />
+            </tr>
+          </thead>
+          <tbody>
+            {modules.map((module, index) => (
+              <tr key={module.code}>
+                <TableCell>{module.name}</TableCell>
+                <TableCell>
+                  <input
+                    aria-label={`Ancho módulo inteligente ${index + 1}`}
+                    min="0"
+                    step="any"
+                    style={{ ...inputStyle, minWidth: '120px' }}
+                    type="number"
+                    value={module.widthMm}
+                    onChange={(event) => onUpdateModuleWidth(module.code, event.target.value)}
+                  />
+                </TableCell>
+                <TableCell>{module.defaultHeightMm ?? 720} mm</TableCell>
+                <TableCell>{module.defaultDepthMm ?? 620} mm</TableCell>
+                <TableCell>{module.doors}</TableCell>
+                <TableCell>{module.drawers}</TableCell>
+                <TableCell>{module.shelves}</TableCell>
+                <TableCell>
+                  <ul style={{ margin: 0, paddingLeft: '18px' }}>
+                    {(
+                      module.technicalSummary ?? ['Plantilla preliminar pendiente de detalle.']
+                    ).map((item) => (
+                      <li key={item}>{item}</li>
+                    ))}
+                    {(module.accessories ?? []).length > 0 ? (
+                      <li>Accesorios: {(module.accessories ?? []).join(', ')}</li>
+                    ) : null}
+                  </ul>
+                </TableCell>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+
+      {automaticNotes.length > 0 ? (
+        <div
+          role="status"
+          style={{
+            background: '#ecfdf5',
+            border: '1px solid #86efac',
+            borderRadius: '12px',
+            color: '#166534',
+            marginTop: '16px',
+            padding: '12px',
+          }}
+        >
+          <p style={{ fontWeight: 800, marginTop: 0 }}>Avisos automáticos de plantilla</p>
+          <ul>
+            {automaticNotes.map((note) => (
+              <li key={note}>{note}</li>
+            ))}
+          </ul>
+        </div>
+      ) : null}
+    </section>
+  );
+}
 function BaseModuleCatalogSection({
   composition,
   measurementWarning,
@@ -790,6 +989,25 @@ function formatCompositionStatus(status: DemoModuleCompositionStatus): string {
   return 'supera ancho disponible';
 }
 
+function formatTemplateCategory(category: DemoModuleTemplate['category']): string {
+  if (category === 'base') {
+    return 'bajo mesada';
+  }
+
+  if (category === 'wall') {
+    return 'alacena';
+  }
+
+  if (category === 'tall') {
+    return 'columna';
+  }
+
+  if (category === 'corner') {
+    return 'esquina';
+  }
+
+  return 'terminal';
+}
 function formatModuleType(type: DemoSelectedBaseModule['type']): string {
   if (type === 'doors') {
     return 'puertas';

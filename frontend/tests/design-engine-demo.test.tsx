@@ -163,4 +163,39 @@ describe('Design engine internal demo', () => {
     expect(screen.getByText('Si incluís zócalo, indicá la altura del zócalo.')).toBeInTheDocument();
     expect(screen.getByLabelText('Notas de demo')).toHaveTextContent('Cotización preliminar');
   });
+  it('shows the smart standard module library', () => {
+    window.history.pushState(null, '', '/demo/design-engine');
+
+    render(<App />);
+
+    expect(
+      screen.getByRole('heading', { name: 'Biblioteca de módulos inteligentes' }),
+    ).toBeInTheDocument();
+    expect(screen.getByText('Armado modular tipo Tetris:', { exact: false })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Agregar Bajo mesada bacha' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Agregar Columna despensa' })).toBeInTheDocument();
+  });
+
+  it('adds a standard module from the library to the wall', () => {
+    window.history.pushState(null, '', '/demo/design-engine');
+
+    render(<App />);
+
+    fireEvent.click(screen.getByRole('button', { name: 'Agregar Bajo mesada bacha' }));
+
+    expect(screen.getAllByText('Bajo mesada bacha').length).toBeGreaterThanOrEqual(1);
+    expect(screen.getByText('Módulo piletero con fondo y calados a validar.')).toBeInTheDocument();
+  });
+
+  it('recalculates the door count automatically when a smart module width changes', () => {
+    window.history.pushState(null, '', '/demo/design-engine');
+
+    render(<App />);
+
+    fireEvent.change(screen.getByLabelText('Ancho módulo inteligente 1'), {
+      target: { value: '400' },
+    });
+
+    expect(screen.getByText('Ajuste automático: ancho 400 mm usa 1 puerta.')).toBeInTheDocument();
+  });
 });

@@ -2,6 +2,27 @@
 
 export type DemoBaseModuleType = 'doors' | 'drawers' | 'open_shelves' | 'sink' | 'filler' | 'oven';
 
+export type DemoModuleTemplateCategory = 'base' | 'wall' | 'tall' | 'corner' | 'terminal';
+
+export type DemoModuleTemplate = {
+  templateCode: string;
+  name: string;
+  category: DemoModuleTemplateCategory;
+  type: DemoBaseModuleType;
+  defaultWidthMm: number;
+  minWidthMm: number;
+  maxWidthMm: number;
+  defaultHeightMm: number;
+  defaultDepthMm: number;
+  defaultDoors: number;
+  defaultDrawers: number;
+  defaultShelves: number;
+  accessories: string[];
+  technicalSummary: string[];
+  allowsAdvancedConfig: boolean;
+  singleDoorMaxWidthMm: number | null;
+};
+
 export type DemoSelectedBaseModule = {
   code: string;
   name: string;
@@ -10,6 +31,13 @@ export type DemoSelectedBaseModule = {
   doors: number;
   drawers: number;
   shelves: number;
+  templateCode?: string;
+  defaultHeightMm?: number;
+  defaultDepthMm?: number;
+  accessories?: string[];
+  technicalSummary?: string[];
+  autoAdjustmentNotes?: string[];
+  allowsAdvancedConfig?: boolean;
 };
 
 export type DemoModuleCompositionStatus = 'encaja' | 'falta_relleno' | 'supera_ancho_disponible';

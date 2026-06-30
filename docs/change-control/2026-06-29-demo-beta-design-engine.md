@@ -99,3 +99,13 @@
 - No usa librerías externas.
 - Permite visualizar la composición modular antes del despiece y cotización.
 - Se integra con el preset cocina WhatsApp 3070 mm.
+
+## Motor de Diseño — biblioteca de módulos inteligentes
+
+- Se inició el cambio de paradigma desde formulario técnico hacia armado modular tipo Tetris.
+- Se agregó una biblioteca inicial de plantillas estándar para bajos, alacenas, columnas, esquinas y terminales.
+- Cada módulo parte de reglas predeterminadas de alto, profundidad, material, cantos, puertas, estantes, fondo, refuerzos, accesorios y validación.
+- La demo permite agregar módulos estándar a la pared y editar principalmente el ancho.
+- Si el ancho de un módulo con puertas baja a 400 mm, Rubik OS ajusta automáticamente a 1 puerta y muestra aviso.
+- La composición recalcula espacio usado, restante y exceso sin guardar en base de datos ni enviar a maderera.
+- La lógica queda preparada para que cada instancia genere piezas, cantos, veta, fondo, refuerzos, materiales y presupuesto preliminar en versiones siguientes.
