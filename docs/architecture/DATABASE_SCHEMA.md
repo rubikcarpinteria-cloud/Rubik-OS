@@ -9,8 +9,8 @@ and is not meant to be executed against Supabase until it is reviewed.
 The model turns the Phase 1 architecture into a PostgreSQL/Supabase schema for
 daily operations. It covers client intake, work orders, conversations, files,
 measurements, design, quotes, approvals, blockers, planning, payments,
-appointments, suppliers, inventory, AI agents, operational readiness checks and
-post-sale.
+appointments, suppliers, inventory, AI agents, operational readiness checks,
+privacy, security monitoring and post-sale.
 
 Rubik OS is not only a chatbot, agenda, quote tool or design tool. The database
 therefore keeps the full commercial, technical and operational trace around the
@@ -28,6 +28,7 @@ real client request or project and connects:
 - Diego approvals.
 - Blockers, dependencies and planning alerts.
 - AI agents and operational readiness evidence.
+- Privacy requests, access audit and security alerts.
 - Payments and appointments.
 - Supplier requests and post-sale cases.
 
@@ -100,6 +101,20 @@ paused project must return to planning review before being reactivated.
 
 This table registers the specialized agents described in `AI_AGENTS.md`, including `sales_ai`, `design_ai`, `pricing_ai`, `supplier_ai`, `planning_ai`, `operational_control_ai` and `post_sale_ai`.
 
+### Privacy And Security
+
+- `privacy_consents`
+- `privacy_requests`
+- `data_access_audit_log`
+- `security_events`
+- `security_alerts`
+- `security_incidents`
+
+These tables support privacy notices, client data requests, access audit,
+suspicious activity detection, security alerts and incident response. The
+security model is documented in `PRIVACY_AND_SECURITY.md` and
+`SECURITY_MONITORING.md`.
+
 ### Suppliers And Inventory
 
 - `suppliers`
@@ -127,6 +142,10 @@ the original work order and client.
 - `design_modules` and `design_parts` hang from `designs`.
 - `quote_items` hangs from `quotes`.
 - `readiness_check_evidence` hangs from `operational_readiness_checks` and may reference `attachments`.
+- `privacy_consents`, `privacy_requests`, `data_access_audit_log` and
+  `security_events` may reference `clients` or `work_orders`.
+- `security_alerts` may reference `security_events`; `security_incidents` may
+  reference `security_alerts`.
 - `project_reactivations.diego_approval_id` can reference the approval that
   authorizes the reactivation.
 - `supplier_requests` and `inventory_items` can reference `suppliers`.
@@ -140,6 +159,8 @@ the original work order and client.
   visible as pending information, blockers or planning alerts.
 - Planning must distinguish tentative dates from confirmed dates.
 - Worker or installer dispatch requires verified readiness when an operational readiness check blocks dispatch.
+- Client files, photos, audios, payments and messages must be treated as
+  personal data with audit and least-privilege access.
 - An externally paused project does not keep automatic operational priority.
 - Reactivation requires planning review and Diego approval when it affects
   agenda or capacity.

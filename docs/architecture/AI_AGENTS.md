@@ -18,6 +18,7 @@ for critical decisions.
 | `planning_ai` | Planning, agenda, capacity and cross-project checks. | `appointments`, `planning_alerts`, `dependencies`, `blockers` | For final dates and reactivations. |
 | `operational_control_ai` | Evidence-based operational readiness control. | `operational_readiness_checks`, `readiness_check_evidence`, `attachments`, `blockers`, `planning_alerts` | For dispatch when readiness is disputed or risky. |
 | `post_sale_ai` | Post-sale follow-up, warranty and claims. | `post_sale_cases`, `messages`, `attachments`, `appointments` | For costly fixes or commercial exceptions. |
+| `security_ai` | Security monitoring and incident alerts. | `data_access_audit_log`, `security_events`, `security_alerts`, `security_incidents` | For critical incidents and access-risk decisions. |
 
 ## Common Rules
 
@@ -172,6 +173,24 @@ Events it can raise:
 - `warranty_review_required`
 - `case_resolved`
 
+## Security AI
+
+`security_ai` monitors suspicious access, repeated denied actions, unusual API
+key use, mass downloads, mass client queries, permission changes and possible
+data exposure. It records events, generates alerts and supports incident
+response.
+
+It must not silently revoke access, delete data or change permissions without an
+approved operational path. Critical alerts require Karem/Diego notification.
+
+Events it can raise:
+
+- `suspicious_login_detected`
+- `mass_download_detected`
+- `permission_change_detected`
+- `possible_data_breach`
+- `incident_review_required`
+
 ## Agent Coordination
 
 Agents communicate by writing structured records:
@@ -183,6 +202,8 @@ Agents communicate by writing structured records:
 - `blockers`, `dependencies` and `planning_alerts` for control flow.
 - `operational_readiness_checks` and `readiness_check_evidence` for evidence
   gates.
+- `data_access_audit_log`, `security_events`, `security_alerts` and
+  `security_incidents` for privacy and security monitoring.
 
 When an agent needs a decision beyond its authority, it creates an approval,
 alert or readiness check instead of silently advancing the order.

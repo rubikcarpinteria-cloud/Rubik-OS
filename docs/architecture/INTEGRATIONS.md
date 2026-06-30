@@ -15,7 +15,7 @@ Las integraciones deben apoyar a Rubik OS, no reemplazar su nucleo. La orden de 
 | Google Calendar | Visualizar fechas tentativas y confirmadas. | Fechas, eventos, disponibilidad declarada. | Eventos propuestos o confirmados. | Calendar no decide viabilidad; Rubik OS debe validar condiciones. | Prioritaria |
 | Google Drive | Guardar fotos, planos, documentos y entregables. | Archivos de cliente, obra, proveedor o diseno. | Links y documentos organizados por orden. | Permisos, duplicados y perdida de relacion con la orden. | Futura |
 | Supabase | Base de datos, autenticacion, storage y backend operativo. | Clientes, ordenes, tareas, archivos, eventos. | Datos consultables por app, IA y backend. | RLS, permisos, backups y auditoria. | Prioritaria |
-| OpenAI API | IA de ventas, resumenes, deteccion de faltantes y planeamiento asistido. | Conversaciones, datos de orden, reglas de negocio. | Resumenes, alertas, propuestas preliminares. | No delegar decisiones criticas; controlar datos sensibles. | Prioritaria |
+| OpenAI API | IA de ventas, resumenes, deteccion de faltantes, planeamiento asistido y apoyo a `security_ai`. | Conversaciones, datos de orden, reglas de negocio, eventos de auditoria. | Resumenes, alertas, propuestas preliminares, clasificacion de riesgo. | No delegar decisiones criticas; controlar datos sensibles; no enviar secretos innecesarios. | Prioritaria |
 | Excel/Google Sheets | Importar o exportar costos, listas de corte y control operativo. | Tablas de precios, materiales, cortes, tareas. | Reportes, presupuestos auxiliares, listas. | Versiones desactualizadas y formulas no auditadas. | Futura |
 | PolyBoard opcional | Apoyo externo para diseno tecnico o validacion puntual. | Medidas, modulos, materiales. | Archivos o listas tecnicas. | No convertirlo en dependencia central. | Opcional |
 | SketchUp opcional | Visualizacion o modelado externo cuando aporte al cliente. | Medidas, referencias, modelos. | Vistas o archivos de apoyo. | Puede alejarse del despiece real si no se controla. | Opcional |
@@ -25,3 +25,5 @@ Las integraciones deben apoyar a Rubik OS, no reemplazar su nucleo. La orden de 
 ## Regla de implementacion
 
 Antes de integrar cualquier servicio externo, debe definirse que entidad de Rubik OS sera la fuente de verdad, que datos se sincronizan, que permisos se necesitan y que pasa si la integracion falla.
+
+Las integraciones que manejen archivos, mensajes, credenciales, logs o datos de clientes deben alimentar `data_access_audit_log`, `security_events` o `security_alerts` cuando corresponda.
