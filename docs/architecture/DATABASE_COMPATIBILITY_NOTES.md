@@ -1,8 +1,7 @@
 # Database Compatibility Notes
 
-This note documents why migration `009_core_schema_compatibility_and_rls.sql`
-exists and what must be checked before applying the operational schema in
-Supabase.
+This note documents why the compatibility migrations exist and what must be
+checked before applying the operational schema in Supabase.
 
 ## Why Migration 009 Exists
 
@@ -46,9 +45,33 @@ if `quotes_operational_status_check` exists, it is renamed to the canonical
 `quotes_status_check` before replacing the expression. The only dropped check
 constraint is still `quotes_status_check`.
 
+## Migration 011 Broader Legacy Compatibility
+
+Migration `011_quote_status_legacy_compatibility.sql` exists because final
+review found additional historical values allowed by
+`005_quotes_and_cutlists.sql` that 009 did not include.
+
+It corrects the risk that an existing Supabase database, or code still using old
+quote state names, could fail future writes after the check constraint is
+replaced.
+
+Additional legacy values temporarily allowed by 011:
+
+- `preliminar`
+- `pendiente_validacion_diego`
+- `validada`
+- `señada`
+- `seÃ±ada`
+- `convertida_en_proyecto`
+
+The decision remains compatibility first. Migration 011 does not update rows,
+does not normalize state names and does not delete data. It only expands the
+temporary `quotes_status_check` so known historical states remain valid until
+Rubik decides the final canonical status vocabulary.
+
 ## Why No Data Rewrite Happens Yet
 
-Migration 009 does not rewrite quote rows. That is intentional:
+Migrations 009 and 011 do not rewrite quote rows. That is intentional:
 
 - It avoids changing production data before the team decides final naming.
 - It avoids guessing whether `enviada_cliente` should map to `enviado_cliente`
@@ -82,7 +105,7 @@ were introduced by an earlier migration and need a separate policy review.
 ## Supabase Checklist Before Applying
 
 - Confirm a fresh backup or Supabase snapshot exists.
-- Confirm migrations `001` through `008` have applied in the target database.
+- Confirm migrations `001` through `011` have applied in the target database.
 - Inspect current quote statuses:
 
 ```sql
@@ -92,11 +115,9 @@ group by status
 order by status;
 ```
 
-- Confirm whether any rows use `enviada_cliente`, `vencida`, or `rechazada`.
-- Confirm whether any rows use transitional 008 statuses such as `preliminar`,
-  `pendiente_validacion_diego`, `validada`, `señada`, or
-  `convertida_en_proyecto`. If they do, review whether 009 should be broadened
-  before applying.
+- Confirm whether any rows use legacy values such as `enviada_cliente`,
+  `vencida`, `rechazada`, `preliminar`, `pendiente_validacion_diego`,
+  `validada`, `señada`, `seÃ±ada`, or `convertida_en_proyecto`.
 - Inspect quote number usage:
 
 ```sql
@@ -109,18 +130,19 @@ from public.quotes;
 - Confirm application code can tolerate RLS being enabled on the new tables.
 - Confirm backend/service-role access is available for operational reads and
   writes after RLS is enabled.
-- Test 008 and 009 first in a staging copy of Supabase.
+- Test 008, 009, 010 and 011 first in a staging copy of Supabase.
 - Run smoke checks after applying in staging.
 - Do not apply to production until quote statuses and access paths are reviewed.
 
-## Possible Future Migration 010
+## Possible Future Normalization Migration
 
 A future normalization migration can:
 
 - Map `enviada_cliente` to `enviado_cliente`.
 - Map `vencida` to `vencido`.
 - Map `rechazada` to `rechazado_cliente`.
-- Decide what to do with any transitional 008 statuses still present.
+- Decide what to do with `preliminar`, `pendiente_validacion_diego`,
+  `validada`, `señada`, `seÃ±ada` and `convertida_en_proyecto`.
 - Recreate `quotes_status_check` with only the final canonical state names.
 - Add a guard that formal or confirmed quotes require `quote_number`.
 - Define RLS policies for user-facing roles.
