@@ -1,0 +1,4 @@
+- Supabase CLI lee migraciones desde supabase/migrations.
+- database/migrations contiene la copia historica/documental usada por el proyecto.
+- Mientras no migremos definitivamente la convencion, ambas carpetas deben mantenerse sincronizadas.
+- No ejecutar db push si hay diferencias entre ambas.
