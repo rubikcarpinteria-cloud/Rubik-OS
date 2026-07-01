@@ -1169,3 +1169,380 @@ describe('GET /work-orders/:id', () => {
     });
   });
 });
+
+describe('PATCH /work-orders/:id/readiness-checks/:checkId', () => {
+  type MockRecord = Record<string, unknown>;
+
+  type ReadinessPatchMockOptions = {
+    evidenceData?: MockRecord | null;
+    evidenceError?: unknown;
+    existingData?: MockRecord | null;
+    existingError?: unknown;
+    onEvidenceInsert?: (payload: MockRecord) => void;
+    onUpdate?: (payload: MockRecord) => void;
+    updatedData?: MockRecord | null;
+    updateError?: unknown;
+  };
+
+  const existingReadinessCheck = {
+    id: 'check-1',
+    work_order_id: 'work-order-1',
+    check_type: 'site_ready_for_installation',
+    title: 'Confirmar obra lista para instalar',
+    description: 'No enviar instaladores hasta recibir evidencia verificable de obra lista.',
+    status: 'requested',
+    required_evidence_type: 'mixed',
+    responsible_party: 'client',
+    requested_by_agent: 'operational_control_ai',
+    confirmed_by: null,
+    confirmed_at: null,
+    expires_at: null,
+    blocks_next_stage: true,
+    blocks_worker_dispatch: true,
+    created_at: '2026-07-01T11:00:00.000Z',
+    updated_at: '2026-07-01T11:00:00.000Z',
+  };
+
+  const confirmedReadinessCheck = {
+    ...existingReadinessCheck,
+    status: 'confirmed',
+    confirmed_by: 'Diego',
+    confirmed_at: '2026-07-01T12:00:00.000Z',
+    updated_at: '2026-07-01T12:00:00.000Z',
+  };
+
+  const readinessEvidence = {
+    id: 'evidence-1',
+    evidence_type: 'photo',
+    evidence_label: 'Foto obra lista',
+    external_reference: 'https://example.invalid/evidence',
+    received_from: 'Cliente Prueba',
+    received_at: '2026-07-01T12:05:00.000Z',
+  };
+
+  function createReadinessPatchSupabaseMock(
+    options: ReadinessPatchMockOptions = {},
+  ): SupabaseClient {
+    const existingData =
+      'existingData' in options ? options.existingData : existingReadinessCheck;
+    const existingError = options.existingError ?? null;
+    const updatedData = 'updatedData' in options ? options.updatedData : confirmedReadinessCheck;
+    const updateError = options.updateError ?? null;
+    const evidenceData = 'evidenceData' in options ? options.evidenceData : readinessEvidence;
+    const evidenceError = options.evidenceError ?? null;
+
+    return {
+      from: (table: string) => {
+        if (table === 'operational_readiness_checks') {
+          return {
+            select: () => {
+              const selectChain = {
+                eq: () => selectChain,
+                maybeSingle: () => Promise.resolve({ data: existingData, error: existingError }),
+              };
+
+              return selectChain;
+            },
+            update: (payload: MockRecord) => {
+              options.onUpdate?.(payload);
+
+              const updateChain = {
+                eq: () => updateChain,
+                select: () => ({
+                  single: () => Promise.resolve({ data: updatedData, error: updateError }),
+                }),
+              };
+
+              return updateChain;
+            },
+          };
+        }
+
+        if (table === 'readiness_check_evidence') {
+          return {
+            insert: (payload: MockRecord) => {
+              options.onEvidenceInsert?.(payload);
+
+              return {
+                select: () => ({
+                  single: () => Promise.resolve({ data: evidenceData, error: evidenceError }),
+                }),
+              };
+            },
+          };
+        }
+
+        throw new Error(`Unexpected table: ${table}`);
+      },
+    } as unknown as SupabaseClient;
+  }
+
+  it('confirms a readiness check with valid evidence', async () => {
+    const config = loadConfig({ APP_ENV: 'test' });
+    const app = await buildApp(config, {
+      supabaseClient: createReadinessPatchSupabaseMock(),
+    });
+    apps.push(app);
+
+    const response = await app.inject({
+      method: 'PATCH',
+      payload: {
+        confirmed_by: 'Diego',
+        evidence: {
+          evidence_label: 'Foto obra lista',
+          evidence_type: 'photo',
+          external_reference: 'https://example.invalid/evidence',
+          received_from: 'Cliente Prueba',
+        },
+        status: 'confirmed',
+      },
+      url: '/work-orders/work-order-1/readiness-checks/check-1',
+    });
+
+    expect(response.statusCode).toBe(200);
+    expect(response.json()).toEqual({
+      data: {
+        ...confirmedReadinessCheck,
+        evidence: readinessEvidence,
+      },
+    });
+  });
+
+  it('does not return notes even when notes are saved', async () => {
+    const config = loadConfig({ APP_ENV: 'test' });
+    const app = await buildApp(config, {
+      supabaseClient: createReadinessPatchSupabaseMock({
+        evidenceData: {
+          ...readinessEvidence,
+          notes: 'internal evidence notes',
+        },
+        updatedData: {
+          ...confirmedReadinessCheck,
+          notes: 'internal check notes',
+        },
+      }),
+    });
+    apps.push(app);
+
+    const response = await app.inject({
+      method: 'PATCH',
+      payload: {
+        confirmed_by: 'Diego',
+        evidence: {
+          evidence_type: 'photo',
+          notes: 'internal evidence notes',
+        },
+        notes: 'internal check notes',
+        status: 'confirmed',
+      },
+      url: '/work-orders/work-order-1/readiness-checks/check-1',
+    });
+
+    expect(response.statusCode).toBe(200);
+    expect(response.body).not.toContain('notes');
+  });
+
+  it('creates readiness_check_evidence when evidence is provided', async () => {
+    const config = loadConfig({ APP_ENV: 'test' });
+    let evidenceInsert: MockRecord | null = null;
+    const app = await buildApp(config, {
+      supabaseClient: createReadinessPatchSupabaseMock({
+        onEvidenceInsert: (payload) => {
+          evidenceInsert = payload;
+        },
+      }),
+    });
+    apps.push(app);
+
+    const response = await app.inject({
+      method: 'PATCH',
+      payload: {
+        confirmed_by: 'Diego',
+        evidence: {
+          evidence_label: 'Foto obra lista',
+          evidence_type: 'photo',
+          external_reference: 'https://example.invalid/evidence',
+          notes: 'internal evidence notes',
+          received_from: 'Cliente Prueba',
+        },
+        status: 'confirmed',
+      },
+      url: '/work-orders/work-order-1/readiness-checks/check-1',
+    });
+
+    expect(response.statusCode).toBe(200);
+    expect(evidenceInsert).toEqual({
+      attachment_id: null,
+      evidence_label: 'Foto obra lista',
+      evidence_type: 'photo',
+      external_reference: 'https://example.invalid/evidence',
+      notes: 'internal evidence notes',
+      readiness_check_id: 'check-1',
+      received_from: 'Cliente Prueba',
+    });
+  });
+
+  it('requires evidence to confirm a readiness check that blocks worker dispatch', async () => {
+    const config = loadConfig({ APP_ENV: 'test' });
+    const app = await buildApp(config, {
+      supabaseClient: createReadinessPatchSupabaseMock(),
+    });
+    apps.push(app);
+
+    const response = await app.inject({
+      method: 'PATCH',
+      payload: {
+        confirmed_by: 'Diego',
+        status: 'confirmed',
+      },
+      url: '/work-orders/work-order-1/readiness-checks/check-1',
+    });
+
+    expect(response.statusCode).toBe(400);
+    expect(response.json()).toEqual({
+      error: 'evidence_required_for_confirmation',
+    });
+  });
+
+  it('returns 400 when work_order_id is invalid', async () => {
+    const config = loadConfig({ APP_ENV: 'test' });
+    const app = await buildApp(config, { supabaseClient: null });
+    apps.push(app);
+
+    const response = await app.inject({
+      method: 'PATCH',
+      payload: { status: 'requested' },
+      url: '/work-orders/%20/readiness-checks/check-1',
+    });
+
+    expect(response.statusCode).toBe(400);
+    expect(response.json()).toEqual({
+      error: 'invalid_work_order_id',
+    });
+  });
+
+  it('returns 400 when checkId is invalid', async () => {
+    const config = loadConfig({ APP_ENV: 'test' });
+    const app = await buildApp(config, { supabaseClient: null });
+    apps.push(app);
+
+    const response = await app.inject({
+      method: 'PATCH',
+      payload: { status: 'requested' },
+      url: '/work-orders/work-order-1/readiness-checks/%20',
+    });
+
+    expect(response.statusCode).toBe(400);
+    expect(response.json()).toEqual({
+      error: 'invalid_readiness_check_id',
+    });
+  });
+
+  it('returns 404 when the readiness check does not exist for the work order', async () => {
+    const config = loadConfig({ APP_ENV: 'test' });
+    const app = await buildApp(config, {
+      supabaseClient: createReadinessPatchSupabaseMock({ existingData: null }),
+    });
+    apps.push(app);
+
+    const response = await app.inject({
+      method: 'PATCH',
+      payload: { status: 'requested' },
+      url: '/work-orders/work-order-1/readiness-checks/missing-check',
+    });
+
+    expect(response.statusCode).toBe(404);
+    expect(response.json()).toEqual({
+      error: 'readiness_check_not_found',
+    });
+  });
+
+  it('returns 400 when status is invalid', async () => {
+    const config = loadConfig({ APP_ENV: 'test' });
+    const app = await buildApp(config, {
+      supabaseClient: createReadinessPatchSupabaseMock(),
+    });
+    apps.push(app);
+
+    const response = await app.inject({
+      method: 'PATCH',
+      payload: { status: 'done' },
+      url: '/work-orders/work-order-1/readiness-checks/check-1',
+    });
+
+    expect(response.statusCode).toBe(400);
+    expect(response.json()).toEqual({
+      error: 'invalid_readiness_check_status',
+    });
+  });
+
+  it('returns 503 when Supabase is not configured', async () => {
+    const config = loadConfig({ APP_ENV: 'test' });
+    const app = await buildApp(config);
+    apps.push(app);
+
+    const response = await app.inject({
+      method: 'PATCH',
+      payload: { status: 'requested' },
+      url: '/work-orders/work-order-1/readiness-checks/check-1',
+    });
+
+    expect(response.statusCode).toBe(503);
+    expect(response.json()).toEqual({
+      error: 'supabase_not_configured',
+    });
+  });
+
+  it('returns 503 when Supabase fails while updating the readiness check', async () => {
+    const config = loadConfig({ APP_ENV: 'test' });
+    const app = await buildApp(config, {
+      supabaseClient: createReadinessPatchSupabaseMock({
+        updateError: { message: 'permission denied' },
+        updatedData: null,
+      }),
+    });
+    apps.push(app);
+
+    const response = await app.inject({
+      method: 'PATCH',
+      payload: {
+        notes: 'Confirmed by photo',
+        status: 'provided',
+      },
+      url: '/work-orders/work-order-1/readiness-checks/check-1',
+    });
+
+    expect(response.statusCode).toBe(503);
+    expect(response.json()).toEqual({
+      error: 'readiness_check_update_failed',
+    });
+  });
+
+  it('returns 503 when Supabase fails while creating evidence', async () => {
+    const config = loadConfig({ APP_ENV: 'test' });
+    const app = await buildApp(config, {
+      supabaseClient: createReadinessPatchSupabaseMock({
+        evidenceData: null,
+        evidenceError: { message: 'permission denied' },
+      }),
+    });
+    apps.push(app);
+
+    const response = await app.inject({
+      method: 'PATCH',
+      payload: {
+        confirmed_by: 'Diego',
+        evidence: {
+          evidence_type: 'photo',
+        },
+        status: 'confirmed',
+      },
+      url: '/work-orders/work-order-1/readiness-checks/check-1',
+    });
+
+    expect(response.statusCode).toBe(503);
+    expect(response.json()).toEqual({
+      error: 'readiness_check_update_failed',
+    });
+  });
+});

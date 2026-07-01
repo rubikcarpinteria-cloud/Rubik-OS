@@ -40,6 +40,35 @@ export type OperationalReadinessCheckSummary = {
   updated_at: string;
 };
 
+export type OperationalReadinessCheckUpdate = OperationalReadinessCheckSummary & {
+  work_order_id: string;
+  evidence: ReadinessCheckEvidenceSummary | null;
+};
+
+export type ReadinessCheckEvidenceSummary = {
+  id: string;
+  evidence_type: string;
+  evidence_label: string | null;
+  external_reference: string | null;
+  received_from: string | null;
+  received_at: string;
+};
+
+export type ReadinessCheckEvidenceInput = {
+  evidence_type: string;
+  evidence_label?: string | undefined;
+  external_reference?: string | undefined;
+  notes?: string | undefined;
+  received_from?: string | undefined;
+};
+
+export type ReadinessCheckUpdateInput = {
+  confirmed_by?: string | undefined;
+  evidence?: ReadinessCheckEvidenceInput | undefined;
+  notes?: string | undefined;
+  status: string;
+};
+
 export type PlanningAlertSummary = {
   id: string;
   alert_type: string;
