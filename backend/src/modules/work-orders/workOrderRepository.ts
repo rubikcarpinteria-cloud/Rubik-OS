@@ -2,6 +2,7 @@ import type { SupabaseClient } from '@supabase/supabase-js';
 
 import type {
   OperationalReadinessCheckSummary,
+  PlanningAlertSummary,
   WorkOrderDetail,
   WorkOrderFilters,
   WorkOrderSummary,
@@ -12,6 +13,8 @@ const WORK_ORDER_SUMMARY_COLUMNS =
 const WORK_ORDER_DETAIL_COLUMNS = `${WORK_ORDER_SUMMARY_COLUMNS}, client:clients(id, full_name, display_name, default_location)`;
 const OPERATIONAL_READINESS_CHECK_COLUMNS =
   'id, check_type, title, description, status, required_evidence_type, responsible_party, requested_by_agent, confirmed_by, confirmed_at, expires_at, blocks_next_stage, blocks_worker_dispatch, created_at, updated_at';
+const PLANNING_ALERT_COLUMNS =
+  'id, alert_type, title, message, severity, status, generated_by, assigned_to, resolved_at, created_at, updated_at';
 
 type RawWorkOrderDetail = WorkOrderSummary & {
   client: WorkOrderDetail['client'] | WorkOrderDetail['client'][];
@@ -39,9 +42,26 @@ function toSafeOperationalReadinessCheck(
   };
 }
 
+function toSafePlanningAlert(alert: PlanningAlertSummary): PlanningAlertSummary {
+  return {
+    id: alert.id,
+    alert_type: alert.alert_type,
+    title: alert.title,
+    message: alert.message,
+    severity: alert.severity,
+    status: alert.status,
+    generated_by: alert.generated_by,
+    assigned_to: alert.assigned_to,
+    resolved_at: alert.resolved_at,
+    created_at: alert.created_at,
+    updated_at: alert.updated_at,
+  };
+}
+
 function toSafeWorkOrderDetail(
   workOrder: RawWorkOrderDetail,
   operationalReadinessChecks: OperationalReadinessCheckSummary[],
+  planningAlerts: PlanningAlertSummary[],
 ): WorkOrderDetail {
   const client = Array.isArray(workOrder.client) ? (workOrder.client[0] ?? null) : workOrder.client;
 
@@ -70,6 +90,7 @@ function toSafeWorkOrderDetail(
             default_location: client.default_location,
           },
     operational_readiness_checks: operationalReadinessChecks.map(toSafeOperationalReadinessCheck),
+    planning_alerts: planningAlerts.map(toSafePlanningAlert),
   };
 }
 
@@ -120,11 +141,24 @@ export async function getWorkOrderById(
       .eq('work_order_id', id)
       .order('created_at', { ascending: true });
 
+  if (operationalReadinessChecksError !== null) {
+    return {
+      data: null,
+      error: operationalReadinessChecksError,
+    };
+  }
+
+  const { data: planningAlerts, error: planningAlertsError } = await supabase
+    .from('planning_alerts')
+    .select(PLANNING_ALERT_COLUMNS)
+    .eq('work_order_id', id)
+    .order('created_at', { ascending: false });
+
   return {
     data:
-      operationalReadinessChecksError === null
-        ? toSafeWorkOrderDetail(workOrder, operationalReadinessChecks ?? [])
+      planningAlertsError === null
+        ? toSafeWorkOrderDetail(workOrder, operationalReadinessChecks ?? [], planningAlerts ?? [])
         : null,
-    error: operationalReadinessChecksError,
+    error: planningAlertsError,
   };
 }

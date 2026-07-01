@@ -556,6 +556,49 @@ describe('GET /work-orders/:id', () => {
           };
         }
 
+        if (table === 'planning_alerts') {
+          return {
+            select: (columns: string) => {
+              expect(columns).toBe(
+                'id, alert_type, title, message, severity, status, generated_by, assigned_to, resolved_at, created_at, updated_at',
+              );
+
+              return {
+                eq: (column: string, value: string) => {
+                  expect(column).toBe('work_order_id');
+                  expect(value).toBe('work-order-1');
+
+                  return {
+                    order: (column: string, options: { ascending: boolean }) => {
+                      expect(column).toBe('created_at');
+                      expect(options).toEqual({ ascending: false });
+
+                      return Promise.resolve({
+                        data: [
+                          {
+                            id: 'alert-1',
+                            alert_type: 'obra_no_lista',
+                            title: 'No enviar instaladores',
+                            message: 'Falta evidencia verificable de obra lista.',
+                            severity: 'high',
+                            status: 'open',
+                            generated_by: 'planning_ai',
+                            assigned_to: 'diego',
+                            resolved_at: null,
+                            created_at: '2026-07-01T12:00:00.000Z',
+                            updated_at: '2026-07-01T12:00:00.000Z',
+                          },
+                        ],
+                        error: null,
+                      });
+                    },
+                  };
+                },
+              };
+            },
+          };
+        }
+
         expect(table).toBe('work_orders');
 
         return {
@@ -650,6 +693,21 @@ describe('GET /work-orders/:id', () => {
             updated_at: '2026-07-01T11:00:00.000Z',
           },
         ],
+        planning_alerts: [
+          {
+            id: 'alert-1',
+            alert_type: 'obra_no_lista',
+            title: 'No enviar instaladores',
+            message: 'Falta evidencia verificable de obra lista.',
+            severity: 'high',
+            status: 'open',
+            generated_by: 'planning_ai',
+            assigned_to: 'diego',
+            resolved_at: null,
+            created_at: '2026-07-01T12:00:00.000Z',
+            updated_at: '2026-07-01T12:00:00.000Z',
+          },
+        ],
       },
     });
   });
@@ -682,6 +740,34 @@ describe('GET /work-orders/:id', () => {
                         notes: 'internal check notes',
                         created_at: '2026-07-01T11:00:00.000Z',
                         updated_at: '2026-07-01T11:00:00.000Z',
+                      },
+                    ],
+                    error: null,
+                  }),
+              }),
+            }),
+          };
+        }
+
+        if (table === 'planning_alerts') {
+          return {
+            select: () => ({
+              eq: () => ({
+                order: () =>
+                  Promise.resolve({
+                    data: [
+                      {
+                        id: 'alert-1',
+                        alert_type: 'obra_no_lista',
+                        title: 'No enviar instaladores',
+                        message: 'Falta evidencia verificable de obra lista.',
+                        severity: 'high',
+                        status: 'open',
+                        generated_by: 'planning_ai',
+                        assigned_to: 'diego',
+                        resolved_at: null,
+                        created_at: '2026-07-01T12:00:00.000Z',
+                        updated_at: '2026-07-01T12:00:00.000Z',
                       },
                     ],
                     error: null,
@@ -737,14 +823,15 @@ describe('GET /work-orders/:id', () => {
 
     const response = await app.inject({ method: 'GET', url: '/work-orders/work-order-1' });
     const responseBody = response.body;
+    const responseData = response.json().data;
 
     expect(response.statusCode).toBe(200);
     expect(responseBody).not.toContain('notes');
     expect(responseBody).not.toContain('created_by');
-    expect(responseBody).not.toContain('assigned_to');
     expect(responseBody).not.toContain('requires_diego_approval');
     expect(responseBody).not.toContain('source_channel_id');
     expect(responseBody).not.toContain('document_id');
+    expect(responseData).not.toHaveProperty('assigned_to');
   });
 
   it('returns an empty readiness check list when the work order has no checks', async () => {
@@ -752,6 +839,16 @@ describe('GET /work-orders/:id', () => {
     const supabaseClient = {
       from: (table: string) => {
         if (table === 'operational_readiness_checks') {
+          return {
+            select: () => ({
+              eq: () => ({
+                order: () => Promise.resolve({ data: [], error: null }),
+              }),
+            }),
+          };
+        }
+
+        if (table === 'planning_alerts') {
           return {
             select: () => ({
               eq: () => ({
@@ -809,6 +906,143 @@ describe('GET /work-orders/:id', () => {
     const supabaseClient = {
       from: (table: string) => {
         if (table === 'operational_readiness_checks') {
+          return {
+            select: () => ({
+              eq: () => ({
+                order: () =>
+                  Promise.resolve({ data: null, error: { message: 'permission denied' } }),
+              }),
+            }),
+          };
+        }
+
+        return {
+          select: () => ({
+            eq: () => ({
+              maybeSingle: () =>
+                Promise.resolve({
+                  data: {
+                    id: 'work-order-1',
+                    client_id: 'client-1',
+                    title: 'Cocina demo',
+                    description: 'Proyecto de prueba',
+                    furniture_type: 'kitchen',
+                    room: 'Cocina',
+                    location: 'Obra staging',
+                    priority: 'normal',
+                    status: 'new',
+                    is_blocked: false,
+                    tentative_delivery_date: null,
+                    confirmed_delivery_date: null,
+                    created_at: '2026-07-01T10:00:00.000Z',
+                    updated_at: '2026-07-01T10:00:00.000Z',
+                    client: {
+                      id: 'client-1',
+                      full_name: 'Cliente Demo',
+                      display_name: 'Demo',
+                      default_location: 'Taller',
+                    },
+                  },
+                  error: null,
+                }),
+            }),
+          }),
+        };
+      },
+    } as unknown as SupabaseClient;
+    const app = await buildApp(config, { supabaseClient });
+    apps.push(app);
+
+    const response = await app.inject({ method: 'GET', url: '/work-orders/work-order-1' });
+
+    expect(response.statusCode).toBe(503);
+    expect(response.json()).toEqual({
+      error: 'work_order_query_failed',
+    });
+  });
+
+  it('returns an empty planning alert list when the work order has no alerts', async () => {
+    const config = loadConfig({ APP_ENV: 'test' });
+    const supabaseClient = {
+      from: (table: string) => {
+        if (table === 'operational_readiness_checks') {
+          return {
+            select: () => ({
+              eq: () => ({
+                order: () => Promise.resolve({ data: [], error: null }),
+              }),
+            }),
+          };
+        }
+
+        if (table === 'planning_alerts') {
+          return {
+            select: () => ({
+              eq: () => ({
+                order: () => Promise.resolve({ data: [], error: null }),
+              }),
+            }),
+          };
+        }
+
+        return {
+          select: () => ({
+            eq: () => ({
+              maybeSingle: () =>
+                Promise.resolve({
+                  data: {
+                    id: 'work-order-1',
+                    client_id: 'client-1',
+                    title: 'Cocina demo',
+                    description: 'Proyecto de prueba',
+                    furniture_type: 'kitchen',
+                    room: 'Cocina',
+                    location: 'Obra staging',
+                    priority: 'normal',
+                    status: 'new',
+                    is_blocked: false,
+                    tentative_delivery_date: null,
+                    confirmed_delivery_date: null,
+                    created_at: '2026-07-01T10:00:00.000Z',
+                    updated_at: '2026-07-01T10:00:00.000Z',
+                    client: {
+                      id: 'client-1',
+                      full_name: 'Cliente Demo',
+                      display_name: 'Demo',
+                      default_location: 'Taller',
+                    },
+                  },
+                  error: null,
+                }),
+            }),
+          }),
+        };
+      },
+    } as unknown as SupabaseClient;
+    const app = await buildApp(config, { supabaseClient });
+    apps.push(app);
+
+    const response = await app.inject({ method: 'GET', url: '/work-orders/work-order-1' });
+
+    expect(response.statusCode).toBe(200);
+    expect(response.json().data.planning_alerts).toEqual([]);
+  });
+
+  it('returns 503 when the planning alert query fails', async () => {
+    const config = loadConfig({ APP_ENV: 'test' });
+    const supabaseClient = {
+      from: (table: string) => {
+        if (table === 'operational_readiness_checks') {
+          return {
+            select: () => ({
+              eq: () => ({
+                order: () => Promise.resolve({ data: [], error: null }),
+              }),
+            }),
+          };
+        }
+
+        if (table === 'planning_alerts') {
           return {
             select: () => ({
               eq: () => ({

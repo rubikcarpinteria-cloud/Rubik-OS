@@ -40,9 +40,24 @@ export type OperationalReadinessCheckSummary = {
   updated_at: string;
 };
 
+export type PlanningAlertSummary = {
+  id: string;
+  alert_type: string;
+  title: string;
+  message: string;
+  severity: string;
+  status: string;
+  generated_by: string | null;
+  assigned_to: string | null;
+  resolved_at: string | null;
+  created_at: string;
+  updated_at: string;
+};
+
 export type WorkOrderDetail = WorkOrderSummary & {
   client: WorkOrderClientSummary | null;
   operational_readiness_checks: OperationalReadinessCheckSummary[];
+  planning_alerts: PlanningAlertSummary[];
 };
 
 export type WorkOrderFilters = {
