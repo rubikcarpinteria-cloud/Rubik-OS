@@ -4,6 +4,7 @@ import type { SupabaseClient } from '@supabase/supabase-js';
 
 import type { AppConfig } from './config.js';
 import { registerClientRoutes } from './modules/clients/routes.js';
+import { registerWorkOrderRoutes } from './modules/work-orders/routes.js';
 import { createSupabaseAdminClient } from './supabase.js';
 
 type AppDependencies = {
@@ -64,6 +65,7 @@ export async function buildApp(
   });
 
   await registerClientRoutes(app, supabase);
+  await registerWorkOrderRoutes(app, supabase);
 
   return app;
 }

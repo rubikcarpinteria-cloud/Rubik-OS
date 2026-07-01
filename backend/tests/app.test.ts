@@ -252,3 +252,253 @@ describe('GET /clients', () => {
     });
   });
 });
+
+describe('GET /work-orders', () => {
+  it('returns a work order list from Supabase', async () => {
+    const config = loadConfig({ APP_ENV: 'test' });
+    const supabaseClient = {
+      from: (table: string) => {
+        expect(table).toBe('work_orders');
+
+        return {
+          select: (columns: string) => {
+            expect(columns).toBe(
+              'id, client_id, title, description, furniture_type, room, location, priority, status, is_blocked, tentative_delivery_date, confirmed_delivery_date, created_at, updated_at',
+            );
+
+            return {
+              order: (column: string, options: { ascending: boolean }) => {
+                expect(column).toBe('created_at');
+                expect(options).toEqual({ ascending: false });
+
+                return {
+                  limit: (limit: number) => {
+                    expect(limit).toBe(25);
+
+                    return Promise.resolve({
+                      data: [
+                        {
+                          id: 'work-order-1',
+                          client_id: 'client-1',
+                          title: 'Cocina demo',
+                          description: 'Proyecto de prueba',
+                          furniture_type: 'kitchen',
+                          room: 'Cocina',
+                          location: 'Obra staging',
+                          priority: 'normal',
+                          status: 'new',
+                          is_blocked: false,
+                          tentative_delivery_date: null,
+                          confirmed_delivery_date: null,
+                          created_at: '2026-07-01T10:00:00.000Z',
+                          updated_at: '2026-07-01T10:00:00.000Z',
+                        },
+                      ],
+                      error: null,
+                    });
+                  },
+                };
+              },
+            };
+          },
+        };
+      },
+    } as unknown as SupabaseClient;
+    const app = await buildApp(config, { supabaseClient });
+    apps.push(app);
+
+    const response = await app.inject({ method: 'GET', url: '/work-orders' });
+
+    expect(response.statusCode).toBe(200);
+    expect(response.json()).toEqual({
+      data: [
+        {
+          id: 'work-order-1',
+          client_id: 'client-1',
+          title: 'Cocina demo',
+          description: 'Proyecto de prueba',
+          furniture_type: 'kitchen',
+          room: 'Cocina',
+          location: 'Obra staging',
+          priority: 'normal',
+          status: 'new',
+          is_blocked: false,
+          tentative_delivery_date: null,
+          confirmed_delivery_date: null,
+          created_at: '2026-07-01T10:00:00.000Z',
+          updated_at: '2026-07-01T10:00:00.000Z',
+        },
+      ],
+      meta: {
+        limit: 25,
+        status: null,
+        client_id: null,
+      },
+    });
+  });
+
+  it('respects the limit query parameter', async () => {
+    const config = loadConfig({ APP_ENV: 'test' });
+    const supabaseClient = {
+      from: () => ({
+        select: () => ({
+          order: () => ({
+            limit: (limit: number) => {
+              expect(limit).toBe(10);
+
+              return Promise.resolve({ data: [], error: null });
+            },
+          }),
+        }),
+      }),
+    } as unknown as SupabaseClient;
+    const app = await buildApp(config, { supabaseClient });
+    apps.push(app);
+
+    const response = await app.inject({ method: 'GET', url: '/work-orders?limit=10' });
+
+    expect(response.statusCode).toBe(200);
+    expect(response.json()).toEqual({
+      data: [],
+      meta: {
+        limit: 10,
+        status: null,
+        client_id: null,
+      },
+    });
+  });
+
+  it('caps the limit query parameter at 100', async () => {
+    const config = loadConfig({ APP_ENV: 'test' });
+    const supabaseClient = {
+      from: () => ({
+        select: () => ({
+          order: () => ({
+            limit: (limit: number) => {
+              expect(limit).toBe(100);
+
+              return Promise.resolve({ data: [], error: null });
+            },
+          }),
+        }),
+      }),
+    } as unknown as SupabaseClient;
+    const app = await buildApp(config, { supabaseClient });
+    apps.push(app);
+
+    const response = await app.inject({ method: 'GET', url: '/work-orders?limit=500' });
+
+    expect(response.statusCode).toBe(200);
+    expect(response.json()).toEqual({
+      data: [],
+      meta: {
+        limit: 100,
+        status: null,
+        client_id: null,
+      },
+    });
+  });
+
+  it('filters by status', async () => {
+    const config = loadConfig({ APP_ENV: 'test' });
+    const supabaseClient = {
+      from: () => ({
+        select: () => ({
+          eq: (column: string, value: string) => {
+            expect(column).toBe('status');
+            expect(value).toBe('new');
+
+            return {
+              order: () => ({
+                limit: () => Promise.resolve({ data: [], error: null }),
+              }),
+            };
+          },
+        }),
+      }),
+    } as unknown as SupabaseClient;
+    const app = await buildApp(config, { supabaseClient });
+    apps.push(app);
+
+    const response = await app.inject({ method: 'GET', url: '/work-orders?status=new' });
+
+    expect(response.statusCode).toBe(200);
+    expect(response.json()).toEqual({
+      data: [],
+      meta: {
+        limit: 25,
+        status: 'new',
+        client_id: null,
+      },
+    });
+  });
+
+  it('filters by client_id', async () => {
+    const config = loadConfig({ APP_ENV: 'test' });
+    const supabaseClient = {
+      from: () => ({
+        select: () => ({
+          eq: (column: string, value: string) => {
+            expect(column).toBe('client_id');
+            expect(value).toBe('client-1');
+
+            return {
+              order: () => ({
+                limit: () => Promise.resolve({ data: [], error: null }),
+              }),
+            };
+          },
+        }),
+      }),
+    } as unknown as SupabaseClient;
+    const app = await buildApp(config, { supabaseClient });
+    apps.push(app);
+
+    const response = await app.inject({ method: 'GET', url: '/work-orders?client_id=client-1' });
+
+    expect(response.statusCode).toBe(200);
+    expect(response.json()).toEqual({
+      data: [],
+      meta: {
+        limit: 25,
+        status: null,
+        client_id: 'client-1',
+      },
+    });
+  });
+
+  it('returns 503 when Supabase is not configured', async () => {
+    const config = loadConfig({ APP_ENV: 'test' });
+    const app = await buildApp(config);
+    apps.push(app);
+
+    const response = await app.inject({ method: 'GET', url: '/work-orders' });
+
+    expect(response.statusCode).toBe(503);
+    expect(response.json()).toEqual({
+      error: 'supabase_not_configured',
+    });
+  });
+
+  it('returns 503 when Supabase fails', async () => {
+    const config = loadConfig({ APP_ENV: 'test' });
+    const supabaseClient = {
+      from: () => ({
+        select: () => ({
+          order: () => ({
+            limit: () => Promise.resolve({ data: null, error: { message: 'permission denied' } }),
+          }),
+        }),
+      }),
+    } as unknown as SupabaseClient;
+    const app = await buildApp(config, { supabaseClient });
+    apps.push(app);
+
+    const response = await app.inject({ method: 'GET', url: '/work-orders' });
+
+    expect(response.statusCode).toBe(503);
+    expect(response.json()).toEqual({
+      error: 'work_orders_query_failed',
+    });
+  });
+});
