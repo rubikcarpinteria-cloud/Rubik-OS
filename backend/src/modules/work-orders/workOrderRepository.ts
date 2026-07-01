@@ -7,6 +7,7 @@ import type {
   WorkOrderFilters,
   WorkOrderSummary,
 } from './types.js';
+import { calculateOperationalStatus } from './operationalStatus.js';
 
 const WORK_ORDER_SUMMARY_COLUMNS =
   'id, client_id, title, description, furniture_type, room, location, priority, status, is_blocked, tentative_delivery_date, confirmed_delivery_date, created_at, updated_at';
@@ -91,6 +92,10 @@ function toSafeWorkOrderDetail(
           },
     operational_readiness_checks: operationalReadinessChecks.map(toSafeOperationalReadinessCheck),
     planning_alerts: planningAlerts.map(toSafePlanningAlert),
+    operational_status: calculateOperationalStatus(
+      operationalReadinessChecks.map(toSafeOperationalReadinessCheck),
+      planningAlerts.map(toSafePlanningAlert),
+    ),
   };
 }
 

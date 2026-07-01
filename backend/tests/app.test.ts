@@ -708,6 +708,14 @@ describe('GET /work-orders/:id', () => {
             updated_at: '2026-07-01T12:00:00.000Z',
           },
         ],
+        operational_status: {
+          status: 'red',
+          can_dispatch_workers: false,
+          blocking_reasons: [
+            'Hay un check operativo que bloquea despacho de trabajadores y no esta confirmado.',
+            'Existe una alerta abierta de obra no lista.',
+          ],
+        },
       },
     });
   });

@@ -83,8 +83,15 @@ export type PlanningAlertSummary = {
   updated_at: string;
 };
 
+export type OperationalStatus = {
+  status: 'red' | 'yellow' | 'green';
+  can_dispatch_workers: boolean;
+  blocking_reasons: string[];
+};
+
 export type WorkOrderDetail = WorkOrderSummary & {
   client: WorkOrderClientSummary | null;
+  operational_status: OperationalStatus;
   operational_readiness_checks: OperationalReadinessCheckSummary[];
   planning_alerts: PlanningAlertSummary[];
 };
