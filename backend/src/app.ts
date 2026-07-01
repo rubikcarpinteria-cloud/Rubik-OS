@@ -3,6 +3,7 @@ import Fastify, { type FastifyInstance } from 'fastify';
 import type { SupabaseClient } from '@supabase/supabase-js';
 
 import type { AppConfig } from './config.js';
+import { registerClientRoutes } from './modules/clients/routes.js';
 import { createSupabaseAdminClient } from './supabase.js';
 
 type AppDependencies = {
@@ -61,6 +62,8 @@ export async function buildApp(
       count,
     };
   });
+
+  await registerClientRoutes(app, supabase);
 
   return app;
 }

@@ -92,3 +92,163 @@ describe('GET /health/supabase', () => {
     });
   });
 });
+
+describe('GET /clients', () => {
+  it('returns a client list from Supabase', async () => {
+    const config = loadConfig({ APP_ENV: 'test' });
+    const supabaseClient = {
+      from: (table: string) => {
+        expect(table).toBe('clients');
+
+        return {
+          select: (columns: string) => {
+            expect(columns).toBe(
+              'id, full_name, display_name, default_location, created_at, updated_at',
+            );
+
+            return {
+              order: (column: string, options: { ascending: boolean }) => {
+                expect(column).toBe('created_at');
+                expect(options).toEqual({ ascending: false });
+
+                return {
+                  limit: (limit: number) => {
+                    expect(limit).toBe(25);
+
+                    return Promise.resolve({
+                      data: [
+                        {
+                          id: 'client-1',
+                          full_name: 'Cliente Demo',
+                          display_name: 'Demo',
+                          default_location: 'Taller',
+                          created_at: '2026-07-01T10:00:00.000Z',
+                          updated_at: '2026-07-01T10:00:00.000Z',
+                        },
+                      ],
+                      error: null,
+                    });
+                  },
+                };
+              },
+            };
+          },
+        };
+      },
+    } as unknown as SupabaseClient;
+    const app = await buildApp(config, { supabaseClient });
+    apps.push(app);
+
+    const response = await app.inject({ method: 'GET', url: '/clients' });
+
+    expect(response.statusCode).toBe(200);
+    expect(response.json()).toEqual({
+      data: [
+        {
+          id: 'client-1',
+          full_name: 'Cliente Demo',
+          display_name: 'Demo',
+          default_location: 'Taller',
+          created_at: '2026-07-01T10:00:00.000Z',
+          updated_at: '2026-07-01T10:00:00.000Z',
+        },
+      ],
+      meta: {
+        limit: 25,
+      },
+    });
+  });
+
+  it('respects the limit query parameter', async () => {
+    const config = loadConfig({ APP_ENV: 'test' });
+    const supabaseClient = {
+      from: () => ({
+        select: () => ({
+          order: () => ({
+            limit: (limit: number) => {
+              expect(limit).toBe(10);
+
+              return Promise.resolve({ data: [], error: null });
+            },
+          }),
+        }),
+      }),
+    } as unknown as SupabaseClient;
+    const app = await buildApp(config, { supabaseClient });
+    apps.push(app);
+
+    const response = await app.inject({ method: 'GET', url: '/clients?limit=10' });
+
+    expect(response.statusCode).toBe(200);
+    expect(response.json()).toEqual({
+      data: [],
+      meta: {
+        limit: 10,
+      },
+    });
+  });
+
+  it('caps the limit query parameter at 100', async () => {
+    const config = loadConfig({ APP_ENV: 'test' });
+    const supabaseClient = {
+      from: () => ({
+        select: () => ({
+          order: () => ({
+            limit: (limit: number) => {
+              expect(limit).toBe(100);
+
+              return Promise.resolve({ data: [], error: null });
+            },
+          }),
+        }),
+      }),
+    } as unknown as SupabaseClient;
+    const app = await buildApp(config, { supabaseClient });
+    apps.push(app);
+
+    const response = await app.inject({ method: 'GET', url: '/clients?limit=500' });
+
+    expect(response.statusCode).toBe(200);
+    expect(response.json()).toEqual({
+      data: [],
+      meta: {
+        limit: 100,
+      },
+    });
+  });
+
+  it('returns 503 when Supabase is not configured', async () => {
+    const config = loadConfig({ APP_ENV: 'test' });
+    const app = await buildApp(config);
+    apps.push(app);
+
+    const response = await app.inject({ method: 'GET', url: '/clients' });
+
+    expect(response.statusCode).toBe(503);
+    expect(response.json()).toEqual({
+      error: 'supabase_not_configured',
+    });
+  });
+
+  it('returns 503 when Supabase fails', async () => {
+    const config = loadConfig({ APP_ENV: 'test' });
+    const supabaseClient = {
+      from: () => ({
+        select: () => ({
+          order: () => ({
+            limit: () => Promise.resolve({ data: null, error: { message: 'permission denied' } }),
+          }),
+        }),
+      }),
+    } as unknown as SupabaseClient;
+    const app = await buildApp(config, { supabaseClient });
+    apps.push(app);
+
+    const response = await app.inject({ method: 'GET', url: '/clients' });
+
+    expect(response.statusCode).toBe(503);
+    expect(response.json()).toEqual({
+      error: 'clients_query_failed',
+    });
+  });
+});
