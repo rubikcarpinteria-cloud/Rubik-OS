@@ -95,6 +95,10 @@ paused project must return to planning review before being reactivated.
 
 `operational_readiness_checks` adds an evidence gate before critical operational movement. If a check blocks worker dispatch, promises of delivery or material in transit are not enough; Rubik OS needs verified evidence such as remitos, photos, videos, reception documents or site-ready checklists.
 
+`planning_alerts` supports backend-managed acknowledgement and resolution
+metadata through `acknowledged_by`, `acknowledged_at` and `resolution_notes`.
+Public backend responses should not expose `resolution_notes`.
+
 ### AI Agents
 
 - `ai_agents`

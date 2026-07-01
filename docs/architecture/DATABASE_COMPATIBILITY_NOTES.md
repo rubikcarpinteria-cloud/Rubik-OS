@@ -146,3 +146,29 @@ A future normalization migration can:
 - Recreate `quotes_status_check` with only the final canonical state names.
 - Add a guard that formal or confirmed quotes require `quote_number`.
 - Define RLS policies for user-facing roles.
+
+## Planning alerts resolution compatibility — migration 014
+
+Migration `014_planning_alerts_resolution_fields.sql` aligns
+`public.planning_alerts` with the backend endpoint
+`PATCH /work-orders/:id/planning-alerts/:alertId`.
+
+It fixes the staging failure where the endpoint returned
+`503 planning_alert_update_failed` because the table did not yet have
+`acknowledged_by`, `acknowledged_at` or `resolution_notes`, and the existing
+status check only allowed the legacy alert states.
+
+The migration adds these backend-managed resolution fields:
+
+- `acknowledged_by`
+- `acknowledged_at`
+- `resolution_notes`
+
+The status check now allows `open`, `acknowledged`, `investigating`,
+`resolved`, `false_positive`, `cancelled` and `in_progress`. `in_progress`
+remains temporarily allowed for legacy compatibility while new backend flows
+use `investigating`.
+
+A future normalization migration should decide whether existing `in_progress`
+alerts are mapped to `investigating`, then remove `in_progress` from the final
+allowed status vocabulary once no application path depends on it.
