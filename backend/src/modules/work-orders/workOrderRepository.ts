@@ -1,16 +1,48 @@
 import type { SupabaseClient } from '@supabase/supabase-js';
 
-import type { WorkOrderDetail, WorkOrderFilters, WorkOrderSummary } from './types.js';
+import type {
+  OperationalReadinessCheckSummary,
+  WorkOrderDetail,
+  WorkOrderFilters,
+  WorkOrderSummary,
+} from './types.js';
 
 const WORK_ORDER_SUMMARY_COLUMNS =
   'id, client_id, title, description, furniture_type, room, location, priority, status, is_blocked, tentative_delivery_date, confirmed_delivery_date, created_at, updated_at';
 const WORK_ORDER_DETAIL_COLUMNS = `${WORK_ORDER_SUMMARY_COLUMNS}, client:clients(id, full_name, display_name, default_location)`;
+const OPERATIONAL_READINESS_CHECK_COLUMNS =
+  'id, check_type, title, description, status, required_evidence_type, responsible_party, requested_by_agent, confirmed_by, confirmed_at, expires_at, blocks_next_stage, blocks_worker_dispatch, created_at, updated_at';
 
 type RawWorkOrderDetail = WorkOrderSummary & {
   client: WorkOrderDetail['client'] | WorkOrderDetail['client'][];
 };
 
-function toSafeWorkOrderDetail(workOrder: RawWorkOrderDetail): WorkOrderDetail {
+function toSafeOperationalReadinessCheck(
+  check: OperationalReadinessCheckSummary,
+): OperationalReadinessCheckSummary {
+  return {
+    id: check.id,
+    check_type: check.check_type,
+    title: check.title,
+    description: check.description,
+    status: check.status,
+    required_evidence_type: check.required_evidence_type,
+    responsible_party: check.responsible_party,
+    requested_by_agent: check.requested_by_agent,
+    confirmed_by: check.confirmed_by,
+    confirmed_at: check.confirmed_at,
+    expires_at: check.expires_at,
+    blocks_next_stage: check.blocks_next_stage,
+    blocks_worker_dispatch: check.blocks_worker_dispatch,
+    created_at: check.created_at,
+    updated_at: check.updated_at,
+  };
+}
+
+function toSafeWorkOrderDetail(
+  workOrder: RawWorkOrderDetail,
+  operationalReadinessChecks: OperationalReadinessCheckSummary[],
+): WorkOrderDetail {
   const client = Array.isArray(workOrder.client) ? (workOrder.client[0] ?? null) : workOrder.client;
 
   return {
@@ -37,6 +69,7 @@ function toSafeWorkOrderDetail(workOrder: RawWorkOrderDetail): WorkOrderDetail {
             display_name: client.display_name,
             default_location: client.default_location,
           },
+    operational_readiness_checks: operationalReadinessChecks.map(toSafeOperationalReadinessCheck),
   };
 }
 
@@ -67,14 +100,31 @@ export async function getWorkOrderById(
   supabase: SupabaseClient,
   id: string,
 ): Promise<{ data: WorkOrderDetail | null; error: unknown }> {
-  const { data, error } = await supabase
+  const { data: workOrder, error: workOrderError } = await supabase
     .from('work_orders')
     .select(WORK_ORDER_DETAIL_COLUMNS)
     .eq('id', id)
     .maybeSingle();
 
+  if (workOrderError !== null || workOrder === null) {
+    return {
+      data: null,
+      error: workOrderError,
+    };
+  }
+
+  const { data: operationalReadinessChecks, error: operationalReadinessChecksError } =
+    await supabase
+      .from('operational_readiness_checks')
+      .select(OPERATIONAL_READINESS_CHECK_COLUMNS)
+      .eq('work_order_id', id)
+      .order('created_at', { ascending: true });
+
   return {
-    data: data === null ? null : toSafeWorkOrderDetail(data),
-    error,
+    data:
+      operationalReadinessChecksError === null
+        ? toSafeWorkOrderDetail(workOrder, operationalReadinessChecks ?? [])
+        : null,
+    error: operationalReadinessChecksError,
   };
 }

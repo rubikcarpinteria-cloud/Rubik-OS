@@ -508,6 +508,54 @@ describe('GET /work-orders/:id', () => {
     const config = loadConfig({ APP_ENV: 'test' });
     const supabaseClient = {
       from: (table: string) => {
+        if (table === 'operational_readiness_checks') {
+          return {
+            select: (columns: string) => {
+              expect(columns).toBe(
+                'id, check_type, title, description, status, required_evidence_type, responsible_party, requested_by_agent, confirmed_by, confirmed_at, expires_at, blocks_next_stage, blocks_worker_dispatch, created_at, updated_at',
+              );
+
+              return {
+                eq: (column: string, value: string) => {
+                  expect(column).toBe('work_order_id');
+                  expect(value).toBe('work-order-1');
+
+                  return {
+                    order: (column: string, options: { ascending: boolean }) => {
+                      expect(column).toBe('created_at');
+                      expect(options).toEqual({ ascending: true });
+
+                      return Promise.resolve({
+                        data: [
+                          {
+                            id: 'check-1',
+                            check_type: 'site_ready_for_installation',
+                            title: 'Confirmar obra lista para instalar',
+                            description:
+                              'No enviar instaladores hasta recibir evidencia verificable de obra lista.',
+                            status: 'requested',
+                            required_evidence_type: 'mixed',
+                            responsible_party: 'client',
+                            requested_by_agent: 'operational_control_ai',
+                            confirmed_by: null,
+                            confirmed_at: null,
+                            expires_at: null,
+                            blocks_next_stage: true,
+                            blocks_worker_dispatch: true,
+                            created_at: '2026-07-01T11:00:00.000Z',
+                            updated_at: '2026-07-01T11:00:00.000Z',
+                          },
+                        ],
+                        error: null,
+                      });
+                    },
+                  };
+                },
+              };
+            },
+          };
+        }
+
         expect(table).toBe('work_orders');
 
         return {
@@ -583,6 +631,25 @@ describe('GET /work-orders/:id', () => {
           display_name: 'Demo',
           default_location: 'Taller',
         },
+        operational_readiness_checks: [
+          {
+            id: 'check-1',
+            check_type: 'site_ready_for_installation',
+            title: 'Confirmar obra lista para instalar',
+            description: 'No enviar instaladores hasta recibir evidencia verificable de obra lista.',
+            status: 'requested',
+            required_evidence_type: 'mixed',
+            responsible_party: 'client',
+            requested_by_agent: 'operational_control_ai',
+            confirmed_by: null,
+            confirmed_at: null,
+            expires_at: null,
+            blocks_next_stage: true,
+            blocks_worker_dispatch: true,
+            created_at: '2026-07-01T11:00:00.000Z',
+            updated_at: '2026-07-01T11:00:00.000Z',
+          },
+        ],
       },
     });
   });
@@ -590,45 +657,80 @@ describe('GET /work-orders/:id', () => {
   it('does not return excluded work order or client fields', async () => {
     const config = loadConfig({ APP_ENV: 'test' });
     const supabaseClient = {
-      from: () => ({
-        select: () => ({
-          eq: () => ({
-            maybeSingle: () =>
-              Promise.resolve({
-                data: {
-                  id: 'work-order-1',
-                  client_id: 'client-1',
-                  source_channel_id: 'channel-1',
-                  title: 'Cocina demo',
-                  description: 'Proyecto de prueba',
-                  furniture_type: 'kitchen',
-                  room: 'Cocina',
-                  location: 'Obra staging',
-                  priority: 'normal',
-                  status: 'new',
-                  is_blocked: false,
-                  requires_diego_approval: true,
-                  tentative_delivery_date: null,
-                  confirmed_delivery_date: null,
-                  created_by: 'internal-user',
-                  assigned_to: 'internal-user',
-                  notes: 'internal notes',
-                  created_at: '2026-07-01T10:00:00.000Z',
-                  updated_at: '2026-07-01T10:00:00.000Z',
-                  client: {
-                    id: 'client-1',
-                    full_name: 'Cliente Demo',
-                    display_name: 'Demo',
-                    document_id: 'secret-document',
-                    notes: 'client notes',
-                    default_location: 'Taller',
-                  },
-                },
-                error: null,
+      from: (table: string) => {
+        if (table === 'operational_readiness_checks') {
+          return {
+            select: () => ({
+              eq: () => ({
+                order: () =>
+                  Promise.resolve({
+                    data: [
+                      {
+                        id: 'check-1',
+                        check_type: 'site_ready_for_installation',
+                        title: 'Confirmar obra lista',
+                        description: 'Descripcion publica',
+                        status: 'requested',
+                        required_evidence_type: 'mixed',
+                        responsible_party: 'client',
+                        requested_by_agent: 'operational_control_ai',
+                        confirmed_by: null,
+                        confirmed_at: null,
+                        expires_at: null,
+                        blocks_next_stage: true,
+                        blocks_worker_dispatch: true,
+                        notes: 'internal check notes',
+                        created_at: '2026-07-01T11:00:00.000Z',
+                        updated_at: '2026-07-01T11:00:00.000Z',
+                      },
+                    ],
+                    error: null,
+                  }),
               }),
+            }),
+          };
+        }
+
+        return {
+          select: () => ({
+            eq: () => ({
+              maybeSingle: () =>
+                Promise.resolve({
+                  data: {
+                    id: 'work-order-1',
+                    client_id: 'client-1',
+                    source_channel_id: 'channel-1',
+                    title: 'Cocina demo',
+                    description: 'Proyecto de prueba',
+                    furniture_type: 'kitchen',
+                    room: 'Cocina',
+                    location: 'Obra staging',
+                    priority: 'normal',
+                    status: 'new',
+                    is_blocked: false,
+                    requires_diego_approval: true,
+                    tentative_delivery_date: null,
+                    confirmed_delivery_date: null,
+                    created_by: 'internal-user',
+                    assigned_to: 'internal-user',
+                    notes: 'internal notes',
+                    created_at: '2026-07-01T10:00:00.000Z',
+                    updated_at: '2026-07-01T10:00:00.000Z',
+                    client: {
+                      id: 'client-1',
+                      full_name: 'Cliente Demo',
+                      display_name: 'Demo',
+                      document_id: 'secret-document',
+                      notes: 'client notes',
+                      default_location: 'Taller',
+                    },
+                  },
+                  error: null,
+                }),
+            }),
           }),
-        }),
-      }),
+        };
+      },
     } as unknown as SupabaseClient;
     const app = await buildApp(config, { supabaseClient });
     apps.push(app);
@@ -643,6 +745,123 @@ describe('GET /work-orders/:id', () => {
     expect(responseBody).not.toContain('requires_diego_approval');
     expect(responseBody).not.toContain('source_channel_id');
     expect(responseBody).not.toContain('document_id');
+  });
+
+  it('returns an empty readiness check list when the work order has no checks', async () => {
+    const config = loadConfig({ APP_ENV: 'test' });
+    const supabaseClient = {
+      from: (table: string) => {
+        if (table === 'operational_readiness_checks') {
+          return {
+            select: () => ({
+              eq: () => ({
+                order: () => Promise.resolve({ data: [], error: null }),
+              }),
+            }),
+          };
+        }
+
+        return {
+          select: () => ({
+            eq: () => ({
+              maybeSingle: () =>
+                Promise.resolve({
+                  data: {
+                    id: 'work-order-1',
+                    client_id: 'client-1',
+                    title: 'Cocina demo',
+                    description: 'Proyecto de prueba',
+                    furniture_type: 'kitchen',
+                    room: 'Cocina',
+                    location: 'Obra staging',
+                    priority: 'normal',
+                    status: 'new',
+                    is_blocked: false,
+                    tentative_delivery_date: null,
+                    confirmed_delivery_date: null,
+                    created_at: '2026-07-01T10:00:00.000Z',
+                    updated_at: '2026-07-01T10:00:00.000Z',
+                    client: {
+                      id: 'client-1',
+                      full_name: 'Cliente Demo',
+                      display_name: 'Demo',
+                      default_location: 'Taller',
+                    },
+                  },
+                  error: null,
+                }),
+            }),
+          }),
+        };
+      },
+    } as unknown as SupabaseClient;
+    const app = await buildApp(config, { supabaseClient });
+    apps.push(app);
+
+    const response = await app.inject({ method: 'GET', url: '/work-orders/work-order-1' });
+
+    expect(response.statusCode).toBe(200);
+    expect(response.json().data.operational_readiness_checks).toEqual([]);
+  });
+
+  it('returns 503 when the readiness check query fails', async () => {
+    const config = loadConfig({ APP_ENV: 'test' });
+    const supabaseClient = {
+      from: (table: string) => {
+        if (table === 'operational_readiness_checks') {
+          return {
+            select: () => ({
+              eq: () => ({
+                order: () =>
+                  Promise.resolve({ data: null, error: { message: 'permission denied' } }),
+              }),
+            }),
+          };
+        }
+
+        return {
+          select: () => ({
+            eq: () => ({
+              maybeSingle: () =>
+                Promise.resolve({
+                  data: {
+                    id: 'work-order-1',
+                    client_id: 'client-1',
+                    title: 'Cocina demo',
+                    description: 'Proyecto de prueba',
+                    furniture_type: 'kitchen',
+                    room: 'Cocina',
+                    location: 'Obra staging',
+                    priority: 'normal',
+                    status: 'new',
+                    is_blocked: false,
+                    tentative_delivery_date: null,
+                    confirmed_delivery_date: null,
+                    created_at: '2026-07-01T10:00:00.000Z',
+                    updated_at: '2026-07-01T10:00:00.000Z',
+                    client: {
+                      id: 'client-1',
+                      full_name: 'Cliente Demo',
+                      display_name: 'Demo',
+                      default_location: 'Taller',
+                    },
+                  },
+                  error: null,
+                }),
+            }),
+          }),
+        };
+      },
+    } as unknown as SupabaseClient;
+    const app = await buildApp(config, { supabaseClient });
+    apps.push(app);
+
+    const response = await app.inject({ method: 'GET', url: '/work-orders/work-order-1' });
+
+    expect(response.statusCode).toBe(503);
+    expect(response.json()).toEqual({
+      error: 'work_order_query_failed',
+    });
   });
 
   it('returns 400 when the work order id is invalid', async () => {

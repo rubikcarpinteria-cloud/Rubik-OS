@@ -22,8 +22,27 @@ export type WorkOrderClientSummary = {
   default_location: string | null;
 };
 
+export type OperationalReadinessCheckSummary = {
+  id: string;
+  check_type: string;
+  title: string;
+  description: string | null;
+  status: string;
+  required_evidence_type: string | null;
+  responsible_party: string | null;
+  requested_by_agent: string | null;
+  confirmed_by: string | null;
+  confirmed_at: string | null;
+  expires_at: string | null;
+  blocks_next_stage: boolean;
+  blocks_worker_dispatch: boolean;
+  created_at: string;
+  updated_at: string;
+};
+
 export type WorkOrderDetail = WorkOrderSummary & {
   client: WorkOrderClientSummary | null;
+  operational_readiness_checks: OperationalReadinessCheckSummary[];
 };
 
 export type WorkOrderFilters = {
