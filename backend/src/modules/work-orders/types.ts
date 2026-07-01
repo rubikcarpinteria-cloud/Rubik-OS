@@ -15,6 +15,17 @@ export type WorkOrderSummary = {
   updated_at: string;
 };
 
+export type WorkOrderClientSummary = {
+  id: string;
+  full_name: string;
+  display_name: string | null;
+  default_location: string | null;
+};
+
+export type WorkOrderDetail = WorkOrderSummary & {
+  client: WorkOrderClientSummary | null;
+};
+
 export type WorkOrderFilters = {
   status: string | null;
   client_id: string | null;

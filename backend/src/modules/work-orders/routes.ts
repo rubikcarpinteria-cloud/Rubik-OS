@@ -1,7 +1,7 @@
 import type { FastifyInstance } from 'fastify';
 import type { SupabaseClient } from '@supabase/supabase-js';
 
-import { listWorkOrders } from './workOrderRepository.js';
+import { getWorkOrderById, listWorkOrders } from './workOrderRepository.js';
 import type { WorkOrderFilters } from './types.js';
 
 const DEFAULT_WORK_ORDERS_LIMIT = 25;
@@ -11,6 +11,10 @@ type WorkOrdersQuerystring = {
   client_id?: string;
   limit?: string;
   status?: string;
+};
+
+type WorkOrderParams = {
+  id: string;
 };
 
 function resolveWorkOrdersLimit(limit: string | undefined): number {
@@ -33,6 +37,10 @@ function resolveOptionalFilter(value: string | undefined): string | null {
   }
 
   return value;
+}
+
+function isValidWorkOrderId(id: string): boolean {
+  return id.trim().length > 0;
 }
 
 export async function registerWorkOrderRoutes(
@@ -66,6 +74,38 @@ export async function registerWorkOrderRoutes(
         status: filters.status,
         client_id: filters.client_id,
       },
+    };
+  });
+
+  app.get<{ Params: WorkOrderParams }>('/work-orders/:id', async (request, reply) => {
+    if (!isValidWorkOrderId(request.params.id)) {
+      return reply.code(400).send({
+        error: 'invalid_work_order_id',
+      });
+    }
+
+    if (supabase === null) {
+      return reply.code(503).send({
+        error: 'supabase_not_configured',
+      });
+    }
+
+    const { data, error } = await getWorkOrderById(supabase, request.params.id);
+
+    if (error !== null) {
+      return reply.code(503).send({
+        error: 'work_order_query_failed',
+      });
+    }
+
+    if (data === null) {
+      return reply.code(404).send({
+        error: 'work_order_not_found',
+      });
+    }
+
+    return {
+      data,
     };
   });
 }

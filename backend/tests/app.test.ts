@@ -502,3 +502,217 @@ describe('GET /work-orders', () => {
     });
   });
 });
+
+describe('GET /work-orders/:id', () => {
+  it('returns a work order detail with its client from Supabase', async () => {
+    const config = loadConfig({ APP_ENV: 'test' });
+    const supabaseClient = {
+      from: (table: string) => {
+        expect(table).toBe('work_orders');
+
+        return {
+          select: (columns: string) => {
+            expect(columns).toBe(
+              'id, client_id, title, description, furniture_type, room, location, priority, status, is_blocked, tentative_delivery_date, confirmed_delivery_date, created_at, updated_at, client:clients(id, full_name, display_name, default_location)',
+            );
+
+            return {
+              eq: (column: string, value: string) => {
+                expect(column).toBe('id');
+                expect(value).toBe('work-order-1');
+
+                return {
+                  maybeSingle: () =>
+                    Promise.resolve({
+                      data: {
+                        id: 'work-order-1',
+                        client_id: 'client-1',
+                        title: 'Cocina demo',
+                        description: 'Proyecto de prueba',
+                        furniture_type: 'kitchen',
+                        room: 'Cocina',
+                        location: 'Obra staging',
+                        priority: 'normal',
+                        status: 'new',
+                        is_blocked: false,
+                        tentative_delivery_date: null,
+                        confirmed_delivery_date: null,
+                        created_at: '2026-07-01T10:00:00.000Z',
+                        updated_at: '2026-07-01T10:00:00.000Z',
+                        client: {
+                          id: 'client-1',
+                          full_name: 'Cliente Demo',
+                          display_name: 'Demo',
+                          default_location: 'Taller',
+                        },
+                      },
+                      error: null,
+                    }),
+                };
+              },
+            };
+          },
+        };
+      },
+    } as unknown as SupabaseClient;
+    const app = await buildApp(config, { supabaseClient });
+    apps.push(app);
+
+    const response = await app.inject({ method: 'GET', url: '/work-orders/work-order-1' });
+
+    expect(response.statusCode).toBe(200);
+    expect(response.json()).toEqual({
+      data: {
+        id: 'work-order-1',
+        client_id: 'client-1',
+        title: 'Cocina demo',
+        description: 'Proyecto de prueba',
+        furniture_type: 'kitchen',
+        room: 'Cocina',
+        location: 'Obra staging',
+        priority: 'normal',
+        status: 'new',
+        is_blocked: false,
+        tentative_delivery_date: null,
+        confirmed_delivery_date: null,
+        created_at: '2026-07-01T10:00:00.000Z',
+        updated_at: '2026-07-01T10:00:00.000Z',
+        client: {
+          id: 'client-1',
+          full_name: 'Cliente Demo',
+          display_name: 'Demo',
+          default_location: 'Taller',
+        },
+      },
+    });
+  });
+
+  it('does not return excluded work order or client fields', async () => {
+    const config = loadConfig({ APP_ENV: 'test' });
+    const supabaseClient = {
+      from: () => ({
+        select: () => ({
+          eq: () => ({
+            maybeSingle: () =>
+              Promise.resolve({
+                data: {
+                  id: 'work-order-1',
+                  client_id: 'client-1',
+                  source_channel_id: 'channel-1',
+                  title: 'Cocina demo',
+                  description: 'Proyecto de prueba',
+                  furniture_type: 'kitchen',
+                  room: 'Cocina',
+                  location: 'Obra staging',
+                  priority: 'normal',
+                  status: 'new',
+                  is_blocked: false,
+                  requires_diego_approval: true,
+                  tentative_delivery_date: null,
+                  confirmed_delivery_date: null,
+                  created_by: 'internal-user',
+                  assigned_to: 'internal-user',
+                  notes: 'internal notes',
+                  created_at: '2026-07-01T10:00:00.000Z',
+                  updated_at: '2026-07-01T10:00:00.000Z',
+                  client: {
+                    id: 'client-1',
+                    full_name: 'Cliente Demo',
+                    display_name: 'Demo',
+                    document_id: 'secret-document',
+                    notes: 'client notes',
+                    default_location: 'Taller',
+                  },
+                },
+                error: null,
+              }),
+          }),
+        }),
+      }),
+    } as unknown as SupabaseClient;
+    const app = await buildApp(config, { supabaseClient });
+    apps.push(app);
+
+    const response = await app.inject({ method: 'GET', url: '/work-orders/work-order-1' });
+    const responseBody = response.body;
+
+    expect(response.statusCode).toBe(200);
+    expect(responseBody).not.toContain('notes');
+    expect(responseBody).not.toContain('created_by');
+    expect(responseBody).not.toContain('assigned_to');
+    expect(responseBody).not.toContain('requires_diego_approval');
+    expect(responseBody).not.toContain('source_channel_id');
+    expect(responseBody).not.toContain('document_id');
+  });
+
+  it('returns 400 when the work order id is invalid', async () => {
+    const config = loadConfig({ APP_ENV: 'test' });
+    const app = await buildApp(config, { supabaseClient: null });
+    apps.push(app);
+
+    const response = await app.inject({ method: 'GET', url: '/work-orders/%20' });
+
+    expect(response.statusCode).toBe(400);
+    expect(response.json()).toEqual({
+      error: 'invalid_work_order_id',
+    });
+  });
+
+  it('returns 404 when the work order does not exist', async () => {
+    const config = loadConfig({ APP_ENV: 'test' });
+    const supabaseClient = {
+      from: () => ({
+        select: () => ({
+          eq: () => ({
+            maybeSingle: () => Promise.resolve({ data: null, error: null }),
+          }),
+        }),
+      }),
+    } as unknown as SupabaseClient;
+    const app = await buildApp(config, { supabaseClient });
+    apps.push(app);
+
+    const response = await app.inject({ method: 'GET', url: '/work-orders/missing-work-order' });
+
+    expect(response.statusCode).toBe(404);
+    expect(response.json()).toEqual({
+      error: 'work_order_not_found',
+    });
+  });
+
+  it('returns 503 when Supabase is not configured', async () => {
+    const config = loadConfig({ APP_ENV: 'test' });
+    const app = await buildApp(config);
+    apps.push(app);
+
+    const response = await app.inject({ method: 'GET', url: '/work-orders/work-order-1' });
+
+    expect(response.statusCode).toBe(503);
+    expect(response.json()).toEqual({
+      error: 'supabase_not_configured',
+    });
+  });
+
+  it('returns 503 when Supabase fails', async () => {
+    const config = loadConfig({ APP_ENV: 'test' });
+    const supabaseClient = {
+      from: () => ({
+        select: () => ({
+          eq: () => ({
+            maybeSingle: () =>
+              Promise.resolve({ data: null, error: { message: 'permission denied' } }),
+          }),
+        }),
+      }),
+    } as unknown as SupabaseClient;
+    const app = await buildApp(config, { supabaseClient });
+    apps.push(app);
+
+    const response = await app.inject({ method: 'GET', url: '/work-orders/work-order-1' });
+
+    expect(response.statusCode).toBe(503);
+    expect(response.json()).toEqual({
+      error: 'work_order_query_failed',
+    });
+  });
+});
