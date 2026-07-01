@@ -7,6 +7,10 @@ import {
   hasEnoughConfirmationEvidence,
   updateReadinessCheck,
 } from './readinessCheckRepository.js';
+import {
+  getPlanningAlertForWorkOrder,
+  updatePlanningAlert,
+} from './planningAlertRepository.js';
 import { getWorkOrderById, listWorkOrders } from './workOrderRepository.js';
 import type { WorkOrderFilters } from './types.js';
 
@@ -25,6 +29,10 @@ type WorkOrderParams = {
 
 type ReadinessCheckParams = WorkOrderParams & {
   checkId: string;
+};
+
+type PlanningAlertParams = WorkOrderParams & {
+  alertId: string;
 };
 
 const readinessCheckStatuses = [
@@ -62,6 +70,20 @@ const readinessCheckUpdateSchema = z.strictObject({
   status: z.enum(readinessCheckStatuses),
 });
 
+const planningAlertStatuses = [
+  'acknowledged',
+  'investigating',
+  'resolved',
+  'false_positive',
+  'cancelled',
+] as const;
+
+const planningAlertUpdateSchema = z.strictObject({
+  acknowledged_by: z.string().optional(),
+  resolution_notes: z.string().optional(),
+  status: z.enum(planningAlertStatuses),
+});
+
 function resolveWorkOrdersLimit(limit: string | undefined): number {
   if (limit === undefined) {
     return DEFAULT_WORK_ORDERS_LIMIT;
@@ -92,6 +114,10 @@ function isValidReadinessCheckId(id: string): boolean {
   return id.trim().length > 0;
 }
 
+function isValidPlanningAlertId(id: string): boolean {
+  return id.trim().length > 0;
+}
+
 function isObject(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null && !Array.isArray(value);
 }
@@ -100,6 +126,13 @@ function hasValidReadinessCheckStatus(value: unknown): boolean {
   return (
     typeof value === 'string' &&
     readinessCheckStatuses.includes(value as (typeof readinessCheckStatuses)[number])
+  );
+}
+
+function hasValidPlanningAlertStatus(value: unknown): boolean {
+  return (
+    typeof value === 'string' &&
+    planningAlertStatuses.includes(value as (typeof planningAlertStatuses)[number])
   );
 }
 
@@ -243,6 +276,79 @@ export async function registerWorkOrderRoutes(
       if (updateResult.error !== null || updateResult.data === null) {
         return reply.code(503).send({
           error: 'readiness_check_update_failed',
+        });
+      }
+
+      return {
+        data: updateResult.data,
+      };
+    },
+  );
+
+  app.patch<{ Body: unknown; Params: PlanningAlertParams }>(
+    '/work-orders/:id/planning-alerts/:alertId',
+    async (request, reply) => {
+      if (!isValidWorkOrderId(request.params.id)) {
+        return reply.code(400).send({
+          error: 'invalid_work_order_id',
+        });
+      }
+
+      if (!isValidPlanningAlertId(request.params.alertId)) {
+        return reply.code(400).send({
+          error: 'invalid_planning_alert_id',
+        });
+      }
+
+      if (supabase === null) {
+        return reply.code(503).send({
+          error: 'supabase_not_configured',
+        });
+      }
+
+      if (!isObject(request.body)) {
+        return reply.code(400).send({
+          error: 'invalid_planning_alert_payload',
+        });
+      }
+
+      if (!hasValidPlanningAlertStatus(request.body.status)) {
+        return reply.code(400).send({
+          error: 'invalid_planning_alert_status',
+        });
+      }
+
+      const parsedBody = planningAlertUpdateSchema.safeParse(request.body);
+
+      if (!parsedBody.success) {
+        return reply.code(400).send({
+          error: 'invalid_planning_alert_payload',
+        });
+      }
+
+      const existingAlert = await getPlanningAlertForWorkOrder(
+        supabase,
+        request.params.id,
+        request.params.alertId,
+      );
+
+      if (existingAlert.error !== null) {
+        return reply.code(503).send({
+          error: 'planning_alert_update_failed',
+        });
+      }
+
+      if (existingAlert.data === null) {
+        return reply.code(404).send({
+          error: 'planning_alert_not_found',
+        });
+      }
+
+      const updateResult = await updatePlanningAlert(supabase, existingAlert.data, parsedBody.data);
+
+      if (updateResult.error !== null || updateResult.data === null) {
+        return reply.code(503).send({
+          error: 'planning_alert_update_failed',
         });
       }
 

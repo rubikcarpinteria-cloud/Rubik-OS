@@ -1554,3 +1554,344 @@ describe('PATCH /work-orders/:id/readiness-checks/:checkId', () => {
     });
   });
 });
+
+describe('PATCH /work-orders/:id/planning-alerts/:alertId', () => {
+  type MockRecord = Record<string, unknown>;
+
+  type PlanningAlertPatchMockOptions = {
+    existingData?: MockRecord | null;
+    existingError?: unknown;
+    onUpdate?: (payload: MockRecord) => void;
+    updatedData?: MockRecord | null;
+    updateError?: unknown;
+  };
+
+  const existingPlanningAlert = {
+    id: 'alert-1',
+    work_order_id: 'work-order-1',
+    alert_type: 'obra_no_lista',
+    title: 'No enviar instaladores',
+    message: 'Falta evidencia verificable de obra lista.',
+    severity: 'high',
+    status: 'open',
+    generated_by: 'planning_ai',
+    assigned_to: 'diego',
+    acknowledged_by: null,
+    acknowledged_at: null,
+    resolved_at: null,
+    created_at: '2026-07-01T12:00:00.000Z',
+    updated_at: '2026-07-01T12:00:00.000Z',
+  };
+
+  function createPlanningAlertPatchSupabaseMock(
+    options: PlanningAlertPatchMockOptions = {},
+  ): SupabaseClient {
+    const existingData = 'existingData' in options ? options.existingData : existingPlanningAlert;
+    const existingError = options.existingError ?? null;
+    const updatedData = 'updatedData' in options ? options.updatedData : existingPlanningAlert;
+    const updateError = options.updateError ?? null;
+
+    return {
+      from: (table: string) => {
+        if (table !== 'planning_alerts') {
+          throw new Error(`Unexpected table: ${table}`);
+        }
+
+        return {
+          select: () => {
+            const selectChain = {
+              eq: () => selectChain,
+              maybeSingle: () => Promise.resolve({ data: existingData, error: existingError }),
+            };
+
+            return selectChain;
+          },
+          update: (payload: MockRecord) => {
+            options.onUpdate?.(payload);
+
+            const updateChain = {
+              eq: () => updateChain,
+              select: () => ({
+                single: () => Promise.resolve({ data: updatedData, error: updateError }),
+              }),
+            };
+
+            return updateChain;
+          },
+        };
+      },
+    } as unknown as SupabaseClient;
+  }
+
+  it('resolves a planning alert', async () => {
+    const config = loadConfig({ APP_ENV: 'test' });
+    let updatePayload: MockRecord | null = null;
+    const resolvedAlert = {
+      ...existingPlanningAlert,
+      status: 'resolved',
+      resolved_at: '2026-07-01T13:00:00.000Z',
+      updated_at: '2026-07-01T13:00:00.000Z',
+    };
+    const app = await buildApp(config, {
+      supabaseClient: createPlanningAlertPatchSupabaseMock({
+        onUpdate: (payload) => {
+          updatePayload = payload;
+        },
+        updatedData: resolvedAlert,
+      }),
+    });
+    apps.push(app);
+
+    const response = await app.inject({
+      method: 'PATCH',
+      payload: {
+        resolution_notes: 'Obra validada con evidencia.',
+        status: 'resolved',
+      },
+      url: '/work-orders/work-order-1/planning-alerts/alert-1',
+    });
+
+    expect(response.statusCode).toBe(200);
+    expect(response.json()).toEqual({
+      data: resolvedAlert,
+    });
+    expect(updatePayload).toMatchObject({
+      status: 'resolved',
+      resolution_notes: 'Obra validada con evidencia.',
+    });
+    expect(updatePayload).toHaveProperty('resolved_at');
+  });
+
+  it('sets acknowledged_at and acknowledged_by when acknowledging an alert', async () => {
+    const config = loadConfig({ APP_ENV: 'test' });
+    let updatePayload: MockRecord | null = null;
+    const acknowledgedAlert = {
+      ...existingPlanningAlert,
+      status: 'acknowledged',
+      acknowledged_by: 'Diego',
+      acknowledged_at: '2026-07-01T13:00:00.000Z',
+      updated_at: '2026-07-01T13:00:00.000Z',
+    };
+    const app = await buildApp(config, {
+      supabaseClient: createPlanningAlertPatchSupabaseMock({
+        onUpdate: (payload) => {
+          updatePayload = payload;
+        },
+        updatedData: acknowledgedAlert,
+      }),
+    });
+    apps.push(app);
+
+    const response = await app.inject({
+      method: 'PATCH',
+      payload: {
+        acknowledged_by: 'Diego',
+        status: 'acknowledged',
+      },
+      url: '/work-orders/work-order-1/planning-alerts/alert-1',
+    });
+
+    expect(response.statusCode).toBe(200);
+    expect(response.json()).toEqual({
+      data: acknowledgedAlert,
+    });
+    expect(updatePayload).toMatchObject({
+      acknowledged_by: 'Diego',
+      status: 'acknowledged',
+    });
+    expect(updatePayload).toHaveProperty('acknowledged_at');
+  });
+
+  it('sets resolved_at when marking an alert as false positive', async () => {
+    const config = loadConfig({ APP_ENV: 'test' });
+    let updatePayload: MockRecord | null = null;
+    const app = await buildApp(config, {
+      supabaseClient: createPlanningAlertPatchSupabaseMock({
+        onUpdate: (payload) => {
+          updatePayload = payload;
+        },
+        updatedData: {
+          ...existingPlanningAlert,
+          status: 'false_positive',
+          resolved_at: '2026-07-01T13:00:00.000Z',
+        },
+      }),
+    });
+    apps.push(app);
+
+    const response = await app.inject({
+      method: 'PATCH',
+      payload: { status: 'false_positive' },
+      url: '/work-orders/work-order-1/planning-alerts/alert-1',
+    });
+
+    expect(response.statusCode).toBe(200);
+    expect(updatePayload).toMatchObject({ status: 'false_positive' });
+    expect(updatePayload).toHaveProperty('resolved_at');
+  });
+
+  it('sets resolved_at when cancelling an alert', async () => {
+    const config = loadConfig({ APP_ENV: 'test' });
+    let updatePayload: MockRecord | null = null;
+    const app = await buildApp(config, {
+      supabaseClient: createPlanningAlertPatchSupabaseMock({
+        onUpdate: (payload) => {
+          updatePayload = payload;
+        },
+        updatedData: {
+          ...existingPlanningAlert,
+          status: 'cancelled',
+          resolved_at: '2026-07-01T13:00:00.000Z',
+        },
+      }),
+    });
+    apps.push(app);
+
+    const response = await app.inject({
+      method: 'PATCH',
+      payload: { status: 'cancelled' },
+      url: '/work-orders/work-order-1/planning-alerts/alert-1',
+    });
+
+    expect(response.statusCode).toBe(200);
+    expect(updatePayload).toMatchObject({ status: 'cancelled' });
+    expect(updatePayload).toHaveProperty('resolved_at');
+  });
+
+  it('does not return resolution_notes even when they are saved', async () => {
+    const config = loadConfig({ APP_ENV: 'test' });
+    const app = await buildApp(config, {
+      supabaseClient: createPlanningAlertPatchSupabaseMock({
+        updatedData: {
+          ...existingPlanningAlert,
+          resolution_notes: 'internal resolution notes',
+          status: 'resolved',
+        },
+      }),
+    });
+    apps.push(app);
+
+    const response = await app.inject({
+      method: 'PATCH',
+      payload: {
+        resolution_notes: 'internal resolution notes',
+        status: 'resolved',
+      },
+      url: '/work-orders/work-order-1/planning-alerts/alert-1',
+    });
+
+    expect(response.statusCode).toBe(200);
+    expect(response.body).not.toContain('resolution_notes');
+  });
+
+  it('returns 400 when work_order_id is invalid', async () => {
+    const config = loadConfig({ APP_ENV: 'test' });
+    const app = await buildApp(config, { supabaseClient: null });
+    apps.push(app);
+
+    const response = await app.inject({
+      method: 'PATCH',
+      payload: { status: 'resolved' },
+      url: '/work-orders/%20/planning-alerts/alert-1',
+    });
+
+    expect(response.statusCode).toBe(400);
+    expect(response.json()).toEqual({
+      error: 'invalid_work_order_id',
+    });
+  });
+
+  it('returns 400 when alertId is invalid', async () => {
+    const config = loadConfig({ APP_ENV: 'test' });
+    const app = await buildApp(config, { supabaseClient: null });
+    apps.push(app);
+
+    const response = await app.inject({
+      method: 'PATCH',
+      payload: { status: 'resolved' },
+      url: '/work-orders/work-order-1/planning-alerts/%20',
+    });
+
+    expect(response.statusCode).toBe(400);
+    expect(response.json()).toEqual({
+      error: 'invalid_planning_alert_id',
+    });
+  });
+
+  it('returns 400 when status is invalid', async () => {
+    const config = loadConfig({ APP_ENV: 'test' });
+    const app = await buildApp(config, {
+      supabaseClient: createPlanningAlertPatchSupabaseMock(),
+    });
+    apps.push(app);
+
+    const response = await app.inject({
+      method: 'PATCH',
+      payload: { status: 'open' },
+      url: '/work-orders/work-order-1/planning-alerts/alert-1',
+    });
+
+    expect(response.statusCode).toBe(400);
+    expect(response.json()).toEqual({
+      error: 'invalid_planning_alert_status',
+    });
+  });
+
+  it('returns 404 when the planning alert does not exist for the work order', async () => {
+    const config = loadConfig({ APP_ENV: 'test' });
+    const app = await buildApp(config, {
+      supabaseClient: createPlanningAlertPatchSupabaseMock({ existingData: null }),
+    });
+    apps.push(app);
+
+    const response = await app.inject({
+      method: 'PATCH',
+      payload: { status: 'resolved' },
+      url: '/work-orders/work-order-1/planning-alerts/missing-alert',
+    });
+
+    expect(response.statusCode).toBe(404);
+    expect(response.json()).toEqual({
+      error: 'planning_alert_not_found',
+    });
+  });
+
+  it('returns 503 when Supabase is not configured', async () => {
+    const config = loadConfig({ APP_ENV: 'test' });
+    const app = await buildApp(config);
+    apps.push(app);
+
+    const response = await app.inject({
+      method: 'PATCH',
+      payload: { status: 'resolved' },
+      url: '/work-orders/work-order-1/planning-alerts/alert-1',
+    });
+
+    expect(response.statusCode).toBe(503);
+    expect(response.json()).toEqual({
+      error: 'supabase_not_configured',
+    });
+  });
+
+  it('returns 503 when Supabase fails while updating the planning alert', async () => {
+    const config = loadConfig({ APP_ENV: 'test' });
+    const app = await buildApp(config, {
+      supabaseClient: createPlanningAlertPatchSupabaseMock({
+        updatedData: null,
+        updateError: { message: 'permission denied' },
+      }),
+    });
+    apps.push(app);
+
+    const response = await app.inject({
+      method: 'PATCH',
+      payload: { status: 'resolved' },
+      url: '/work-orders/work-order-1/planning-alerts/alert-1',
+    });
+
+    expect(response.statusCode).toBe(503);
+    expect(response.json()).toEqual({
+      error: 'planning_alert_update_failed',
+    });
+  });
+});

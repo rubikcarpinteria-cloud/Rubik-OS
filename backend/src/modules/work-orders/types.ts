@@ -83,6 +83,18 @@ export type PlanningAlertSummary = {
   updated_at: string;
 };
 
+export type PlanningAlertUpdate = PlanningAlertSummary & {
+  work_order_id: string;
+  acknowledged_by: string | null;
+  acknowledged_at: string | null;
+};
+
+export type PlanningAlertUpdateInput = {
+  acknowledged_by?: string | undefined;
+  resolution_notes?: string | undefined;
+  status: string;
+};
+
 export type OperationalStatus = {
   status: 'red' | 'yellow' | 'green';
   can_dispatch_workers: boolean;
