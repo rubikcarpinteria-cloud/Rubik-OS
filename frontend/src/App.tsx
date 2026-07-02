@@ -1,5 +1,6 @@
 import { useMemo, useState } from 'react';
 
+import { WorkOrderDetailView } from './components/WorkOrderDetailView';
 import './App.css';
 
 type ModuleCategory =
@@ -116,6 +117,12 @@ const initialInstances: ModuleInstance[] = [
   createModuleInstance(getTemplate('dishwasher-600'), 'module-4'),
 ];
 
+function getWorkOrderDetailId(pathname: string): string | null {
+  const match = /^\/work-orders\/([^/]+)$/.exec(pathname);
+
+  return match?.[1] ?? null;
+}
+
 function createModuleInstance(
   template: ModuleTemplate,
   id: string = crypto.randomUUID(),
@@ -155,6 +162,16 @@ function formatMm(value: number) {
 }
 
 export function App() {
+  const workOrderId = getWorkOrderDetailId(window.location.pathname);
+
+  if (workOrderId !== null) {
+    return <WorkOrderDetailView workOrderId={workOrderId} />;
+  }
+
+  return <VisualBuilderApp />;
+}
+
+function VisualBuilderApp() {
   const [moduleInstances, setModuleInstances] = useState<ModuleInstance[]>(initialInstances);
   const [selectedModuleId, setSelectedModuleId] = useState<string>(initialInstances[0]?.id ?? '');
 
